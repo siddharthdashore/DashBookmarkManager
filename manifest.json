@@ -1,8 +1,8 @@
 {
     "manifest_version": 3,
-    "name": "Bookmark Duplicate Remover",
+    "name": "Dash Bookmark Manager",
     "version": "1.0",
-    "description": "Find and delete duplicate bookmarks.",
+    "description": "List and delete duplicate bookmarks.",
     "permissions": ["bookmarks"],
     "background": {
       "service_worker": "background.js"

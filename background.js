@@ -1,5 +1,5 @@
 chrome.runtime.onInstalled.addListener(() => {
-    console.log("Bookmark Duplicate Remover Installed");
+    console.log("Dash Bookmark Manager Installed");
   
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       if (request.action === "findDuplicates") {
@@ -8,39 +8,62 @@ chrome.runtime.onInstalled.addListener(() => {
           let duplicates = [];
   
           function getFolderPath(node, path = []) {
-            if (node.parentId) {
-              path.unshift(node.title);
-              return new Promise((resolve) => {
+            return new Promise((resolve, reject) => {
+              if (node.parentId) {
                 chrome.bookmarks.get(node.parentId, (parentNodes) => {
-                  resolve(getFolderPath(parentNodes[0], path));
+                  if (chrome.runtime.lastError) {
+                    console.error("Error getting parent node:", chrome.runtime.lastError);
+                    reject(chrome.runtime.lastError);
+                    return;
+                  }
+                  if (parentNodes.length > 0) {
+                    path.unshift(parentNodes[0].title);
+                    resolve(getFolderPath(parentNodes[0], path));
+                  } else {
+                    resolve(path.join(" -> "));
+                  }
                 });
-              });
-            } else {
-              return Promise.resolve(path.join(" -> "));
-            }
+              } else {
+                resolve(path.join(" -> "));
+              }
+            });
           }
   
           async function traverseBookmarks(bookmarkNodes) {
-            for (let node of bookmarkNodes) {
-              if (node.url) {
-                if (bookmarkUrls.has(node.url)) {
+            try {
+              for (let node of bookmarkNodes) {
+                if (node.url) {
                   let folderPath = await getFolderPath(node);
-                  duplicates.push({ ...node, folderPath });
-                } else {
-                  bookmarkUrls.set(node.url, node.id);
+                  if (bookmarkUrls.has(node.url)) {
+                    bookmarkUrls.get(node.url).push({ ...node, folderPath });
+                  } else {
+                    bookmarkUrls.set(node.url, [{ ...node, folderPath }]);
+                  }
+                }
+                if (node.children) {
+                  await traverseBookmarks(node.children);
                 }
               }
-              if (node.children) {
-                await traverseBookmarks(node.children);
-              }
+            } catch (error) {
+              console.error("Error traversing bookmarks:", error);
+              throw error;
             }
           }
   
           traverseBookmarks(bookmarks).then(() => {
+            // Collect duplicates
+            bookmarkUrls.forEach((nodes, url) => {
+              if (nodes.length > 1) {
+                duplicates = duplicates.concat(nodes);
+              }
+            });
             sendResponse({ duplicates });
+          }).catch((error) => {
+            console.error("Error processing bookmarks:", error);
+            sendResponse({ error: error.message });
           });
         });
-        return true;
+        return true; // Indicates that the response will be sent asynchronously
       }
     });
   });

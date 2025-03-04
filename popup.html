@@ -3,25 +3,32 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bookmark Duplicate Remover</title>
+  <title>Dash Bookmark Manager</title>
   <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
   <style>
     body {
       font-family: Arial, sans-serif;
-      padding: 10px;
+      margin: 0;
+      padding: 20px;
+      overflow: hidden;
+    }
+    .container-fluid {
+      padding: 0;
     }
     table {
       width: 100%;
       margin-top: 20px;
+      word-wrap: break-word;
     }
     th, td {
-      padding: 8px;
+      padding: 12px;
       text-align: left;
+      word-wrap: break-word;
     }
     th {
       background-color: #f2f2f2;
     }
-    .delete-btn {
+    .delete-btn, .delete-all-btn {
       padding: 5px 10px;
       color: white;
       background-color: #d9534f;
@@ -29,17 +36,36 @@
       cursor: pointer;
       border-radius: 5px;
     }
-    .delete-btn:hover {
+    .delete-btn:hover, .delete-all-btn:hover {
       background-color: #c9302c;
+    }
+    .pagination {
+      display: flex;
+      justify-content: center;
+      margin-top: 20px;
+    }
+    .page-item.disabled .page-link {
+      cursor: not-allowed;
+    }
+    .break-word {
+      word-break: break-all;
     }
   </style>
 </head>
-<body class="container-fluid">
-  <h1 class="text-center my-4">Bookmark Duplicate Remover</h1>
-  <div class="text-center">
-    <button id="findDuplicates" class="btn btn-primary mb-4">Find Duplicate Bookmarks</button>
+<body>
+  <div class="container-fluid">
+    <div class="text-center">
+      <h1 class="my-4">Dash Bookmark Manager</h1>
+      <p id="total-urls" class="font-weight-bold">Total URLs: 0</p>
+      <p id="total-duplicates" class="font-weight-bold">Total Duplicates: 0</p>
+      <button id="findDuplicates" class="btn btn-primary mb-4">Find Duplicate Bookmarks</button>
+      <button id="deleteAll" class="btn btn-danger mb-4 delete-all-btn">Delete All</button>
+    </div>
+    <div id="result" class="table-container table-responsive"></div>
+    <nav aria-label="Page navigation">
+      <ul class="pagination" id="pagination-controls"></ul>
+    </nav>
   </div>
-  <div id="result" class="table-responsive"></div>
   <script src="popup.js"></script>
 </body>
 </html>
