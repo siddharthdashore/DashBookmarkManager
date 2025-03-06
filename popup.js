@@ -93,50 +93,93 @@ function displayError(message) {
   resultDiv.innerHTML = `<p class='text-center text-danger'>Error: ${message}</p>`;
 }
 
-function renderPage(page) {
-    const resultDiv = document.getElementById('result');
-    const filteredDuplicates = applySearchFilter(duplicates); // Apply the filter to get filtered results
-  
-    if (filteredDuplicates.length === 0) {
-      resultDiv.innerHTML = "<p class='text-center'>No duplicate bookmarks found.</p>";
-      document.getElementById('pagination-controls').style.display = "none"; // Hide pagination
-      return;
-    }
-  
-    document.getElementById('pagination-controls').style.display = "flex"; // Show pagination
-    const start = (page - 1) * itemsPerPage;
-    const end = start + itemsPerPage;
-    const pageItems = filteredDuplicates.slice(start, end);
-  
-    let table = `
-      <table class="table table-bordered table-striped">
-        <thead class="thead-dark">
-          <tr>
-            <th><input type="checkbox" id="selectAll" style="display: none;"></th>
-            <th>Title</th>
-            <th class="break-word">URL</th>
-            <th>Folder Path</th>
-            <th>Delete</th>
-          </tr>
-        </thead>
-        <tbody>
-    `;
-    pageItems.forEach((bookmark) => {
-    const isChecked = selectedBookmarks.has(bookmark.id) ? "checked" : "";
-      table += `
-        <tr>
-          <td><input type="checkbox" class="select-bookmark" data-id="${bookmark.id}" ${isChecked}></td>
-          <td>${bookmark.title}</td>
-          <td class="break-word"><a href="${bookmark.url}" target="_blank">${bookmark.url}</a></td>
-          <td>${bookmark.folderPath}</td>
-          <td><button class="delete-btn" data-id="${bookmark.id}"><i class="fas fa-trash"></i></button></td>
-        </tr>
-      `;
-    });
-    updateDeleteAllButton();
+// Add a new variable to keep track of the current view
+let currentView = '';
 
-    table += `</tbody></table>`;
-    resultDiv.innerHTML = table;
+// Modify the renderPage function to conditionally render the table
+function renderPage(page) {
+  const resultDiv = document.getElementById('result');
+  
+  // Render the buttons
+  const buttonsHtml = `
+      <div style="text-align: center;">
+      <button id="duplicates-button" class="btn btn-dark">Duplicates</button>
+      <button id="empty-folders-button" class="btn btn-dark">Empty Folders</button>
+    </div>
+  `;
+  resultDiv.innerHTML = buttonsHtml;
+  
+  // Add event listeners to the buttons
+  document.getElementById('duplicates-button').addEventListener('click', () => {
+    currentView = 'duplicates';
+    renderDuplicatesPage(page);
+  });
+  document.getElementById('empty-folders-button').addEventListener('click', () => {
+    currentView = 'empty-folders';
+    renderEmptyFoldersPage(page);
+  });
+  
+  // Render the initial view
+  if (currentView === 'duplicates') {
+    renderDuplicatesPage(page);
+  }
+}
+
+// New function to render the duplicates page
+function renderDuplicatesPage(page) {
+  // Show the search bar and delete all selected button
+  const searchBar = document.getElementById('searchBar');
+  const deleteAllButton = document.getElementById('deleteAll');
+  const totalUrlsButton = document.getElementById('total-urls');
+  const totalDuplicatesButton = document.getElementById('total-duplicates');
+  searchBar.style.display = 'block';
+  deleteAllButton.style.display = 'block';
+  totalUrlsButton.style.display = 'block';
+  totalDuplicatesButton.style.display = 'block';
+    
+  const resultDiv = document.getElementById('result');
+  const filteredDuplicates = applySearchFilter(duplicates); // Apply the filter to get filtered results
+  
+  if (filteredDuplicates.length === 0) {
+    resultDiv.innerHTML = "<p class='text-center'>No duplicate bookmarks found.</p>";
+    document.getElementById('pagination-controls').style.display = "none"; // Hide pagination
+    return;
+  }
+  
+  document.getElementById('pagination-controls').style.display = "flex"; // Show pagination
+  const start = (page - 1) * itemsPerPage;
+  const end = start + itemsPerPage;
+  const pageItems = filteredDuplicates.slice(start, end);
+  
+  let table = `
+    <table class="table table-bordered table-striped">
+      <thead class="thead-dark">
+        <tr>
+          <th><input type="checkbox" id="selectAll" style="display: none;"></th>
+          <th>Title</th>
+          <th class="break-word">URL</th>
+          <th>Folder Path</th>
+          <th>Delete</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
+  pageItems.forEach((bookmark) => {
+    const isChecked = selectedBookmarks.has(bookmark.id) ? "checked" : "";
+    table += `
+      <tr>
+        <td><input type="checkbox" class="select-bookmark" data-id="${bookmark.id}" ${isChecked}></td>
+        <td>${bookmark.title}</td>
+        <td class="break-word"><a href="${bookmark.url}" target="_blank">${bookmark.url}</a></td>
+        <td>${bookmark.folderPath}</td>
+        <td><button class="delete-btn" data-id="${bookmark.id}"><i class="fas fa-trash"></i></button></td>
+      </tr>
+    `;
+  });
+  updateDeleteAllButton();
+  
+  table += `</tbody></table>`;
+  resultDiv.innerHTML = table;
   
     document.getElementById('selectAll').addEventListener('click', (event) => {
     const isChecked = event.target.checked;
@@ -175,7 +218,12 @@ function renderPage(page) {
   });
 
   updatePagination();
-    }
+}
+
+// New function to render the empty folders page
+function renderEmptyFoldersPage(page) {
+  // TO DO: implement rendering of empty folders page
+}
 
 function applySearchFilter(items) {
     const searchBar = document.getElementById('searchBar'); // Assuming there is a search bar

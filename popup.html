@@ -100,12 +100,12 @@
     <div class="container-fluid">
         <div class="text-center">
             <h1 class="my-4">Dash Bookmark Manager</h1>
-            <p id="total-urls" class="font-weight-bold">Total URLs: 0</p>
-            <p id="total-duplicates" class="font-weight-bold">Total Duplicates: 0</p>
-            <button id="deleteAll" class="btn btn-danger mb-4 delete-all-btn" disabled>Delete All Selected</button>
+            <p id="total-urls" class="font-weight-bold" style="display: none;">Total URLs: 0</p>
+            <p id="total-duplicates" class="font-weight-bold" style="display: none;">Total Duplicates: 0</p>
+            <button id="deleteAll" class="btn btn-danger mb-4 delete-all-btn" style="display: none;">Delete All Selected</button>
         </div>
         <div class="mb-3">
-            <input type="text" id="searchBar" class="form-control" placeholder="Search bookmarks by title, URL, or folder">
+            <input type="text" id="searchBar" class="form-control" placeholder="Search bookmarks by title, URL, or folder"  style="display: none;">
         </div>
         <div id="result" class="table-container table-responsive"></div>
         <nav aria-label="Page navigation">
