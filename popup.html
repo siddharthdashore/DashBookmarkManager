@@ -5,12 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dash Bookmark Manager</title>
   <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
   <style>
     body {
       font-family: Arial, sans-serif;
       margin: 0;
       padding: 20px;
-      overflow: hidden;
+      width: 800px;
+      min-width: 800px;
     }
     .container-fluid {
       padding: 0;
@@ -18,15 +20,56 @@
     table {
       width: 100%;
       margin-top: 20px;
-      word-wrap: break-word;
+      table-layout: fixed;
+      border-collapse: collapse;
     }
-    th, td {
+    /* th, td {
       padding: 12px;
       text-align: left;
-      word-wrap: break-word;
+      vertical-align: middle;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
+    td a {
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    } */
+    th, td {
+    padding: 12px;
+    text-align: left;
+    vertical-align: middle;
+    word-wrap: break-word;
+    white-space: normal;
+    }
+
+    td a {
+        display: block;
+        word-wrap: break-word;
+        white-space: normal;
+    }
+    /* Fixed column widths */
+    th:nth-child(1), td:nth-child(1) { width: 40px; }  /* Checkbox */
+    th:nth-child(2), td:nth-child(2) { width: 20%; }   /* Title */
+    th:nth-child(3), td:nth-child(3) { width: 35%; }   /* URL */
+    th:nth-child(4), td:nth-child(4) { width: 35%; }   /* Folder Path */
+    th:nth-child(5), td:nth-child(5) { width: 60px; }  /* Delete button */
+
+    /* Show full content on hover */
+    /* td:hover {
+      white-space: normal;
+      overflow: visible;
+      position: relative;
+      background-color: #f8f9fa;
+      z-index: 1;
+    } */
     th {
-      background-color: #f2f2f2;
+      background-color: #343a40;
+      color: white;
+      position: sticky;
+      top: 0;
     }
     .delete-btn, .delete-all-btn {
       padding: 5px 10px;
@@ -35,6 +78,7 @@
       border: none;
       cursor: pointer;
       border-radius: 5px;
+      width: 100%;
     }
     .delete-btn:hover, .delete-all-btn:hover {
       background-color: #c9302c;
@@ -55,19 +99,19 @@
 <body>
     <div class="container-fluid">
         <div class="text-center">
-      <h1 class="my-4">Dash Bookmark Manager</h1>
-          <p id="total-urls" class="font-weight-bold">Total URLs: 0</p>
-          <p id="total-duplicates" class="font-weight-bold">Total Duplicates: 0</p>
-          <button id="deleteAll" class="btn btn-danger mb-4 delete-all-btn" disabled>Delete All Selected</button>
+            <h1 class="my-4">Dash Bookmark Manager</h1>
+            <p id="total-urls" class="font-weight-bold">Total URLs: 0</p>
+            <p id="total-duplicates" class="font-weight-bold">Total Duplicates: 0</p>
+            <button id="deleteAll" class="btn btn-danger mb-4 delete-all-btn" disabled>Delete All Selected</button>
         </div>
         <div class="mb-3">
-          <input type="text" id="searchBar" class="form-control" placeholder="Search bookmarks by title, URL, or folder">
+            <input type="text" id="searchBar" class="form-control" placeholder="Search bookmarks by title, URL, or folder">
         </div>
         <div id="result" class="table-container table-responsive"></div>
         <nav aria-label="Page navigation">
-          <ul class="pagination" id="pagination-controls"></ul>
+            <ul class="pagination" id="pagination-controls"></ul>
         </nav>
-      </div>      
-  <script src="popup.js"></script>
+    </div>      
+    <script src="popup.js"></script>
 </body>
 </html>

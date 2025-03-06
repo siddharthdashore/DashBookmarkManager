@@ -65,6 +65,8 @@ function filterDuplicates(searchTerm) {
   currentPage = 1; // Reset to the first page
   totalPages = Math.ceil(filteredDuplicates.length / itemsPerPage);
   renderPage(currentPage);
+  updateDeleteAllButton();
+
 }
 
 function updateCounts() {
@@ -80,8 +82,10 @@ function updateCounts() {
 }
 
 function updateDeleteAllButton() {
-  const deleteAllButton = document.getElementById('deleteAll');
-  deleteAllButton.disabled = selectedBookmarks.size === 0; // Disable if none are selected
+    const deleteAllButton = document.getElementById('deleteAll');
+    //   deleteAllButton.disabled = selectedBookmarks.size === 0; // Disable if none are selected
+    deleteAllButton.style.display = selectedBookmarks.size <= 1 ? 'none' : 'block';
+
 }
 
 function displayError(message) {
@@ -108,7 +112,7 @@ function renderPage(page) {
       <table class="table table-bordered table-striped">
         <thead class="thead-dark">
           <tr>
-            <th><input type="checkbox" id="selectAll"></th>
+            <th><input type="checkbox" id="selectAll" style="display: none;"></th>
             <th>Title</th>
             <th class="break-word">URL</th>
             <th>Folder Path</th>
@@ -125,10 +129,12 @@ function renderPage(page) {
           <td>${bookmark.title}</td>
           <td class="break-word"><a href="${bookmark.url}" target="_blank">${bookmark.url}</a></td>
           <td>${bookmark.folderPath}</td>
-          <td><button class="delete-btn" data-id="${bookmark.id}">Delete</button></td>
+          <td><button class="delete-btn" data-id="${bookmark.id}"><i class="fas fa-trash"></i></button></td>
         </tr>
       `;
     });
+    updateDeleteAllButton();
+
     table += `</tbody></table>`;
     resultDiv.innerHTML = table;
   
