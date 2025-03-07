@@ -279,3 +279,7 @@ function updatePagination() {
     paginationControls.appendChild(pageItem);
   }
 }
+
+document.getElementById('close-button').addEventListener('click', () => {
+    window.close();
+  });
