@@ -93,17 +93,29 @@ function displayError(message) {
   resultDiv.innerHTML = `<p class='text-center text-danger'>Error: ${message}</p>`;
 }
 
+document.getElementById('back-button').addEventListener('click', () => {
+    currentView = '';
+    renderPage(currentPage);
+  });
+
 // Add a new variable to keep track of the current view
 let currentView = '';
 
 // Modify the renderPage function to conditionally render the table
 function renderPage(page) {
   const resultDiv = document.getElementById('result');
+  document.getElementById('back-button').style.display = 'none';
+  document.getElementById('pagination-controls').style.display = "none";
+  document.getElementById('searchBar').style.display = 'none';
+  document.getElementById('total-urls').style.display = 'none';
+  document.getElementById('total-duplicates').style.display = 'none';
   
   // Render the buttons
   const buttonsHtml = `
       <div style="text-align: center;">
-      <button id="duplicates-button" class="btn btn-dark">Duplicates</button>
+      Find:
+      <button id="search-button" class="btn btn-dark">Bookmarks</button>
+      <button id="duplicates-button" class="btn btn-dark">Duplicate Bookmarks</button>
       <button id="empty-folders-button" class="btn btn-dark">Empty Folders</button>
     </div>
   `;
@@ -128,15 +140,12 @@ function renderPage(page) {
 // New function to render the duplicates page
 function renderDuplicatesPage(page) {
   // Show the search bar and delete all selected button
-  const searchBar = document.getElementById('searchBar');
-  const deleteAllButton = document.getElementById('deleteAll');
-  const totalUrlsButton = document.getElementById('total-urls');
-  const totalDuplicatesButton = document.getElementById('total-duplicates');
-  searchBar.style.display = 'block';
-  deleteAllButton.style.display = 'block';
-  totalUrlsButton.style.display = 'block';
-  totalDuplicatesButton.style.display = 'block';
-    
+  document.getElementById('searchBar').style.display = 'block';
+  document.getElementById('deleteAll').style.display = 'block';
+  document.getElementById('total-urls').style.display = 'block';
+  document.getElementById('total-duplicates').style.display = 'block';
+  document.getElementById('back-button').style.display = 'block';
+
   const resultDiv = document.getElementById('result');
   const filteredDuplicates = applySearchFilter(duplicates); // Apply the filter to get filtered results
   
@@ -223,6 +232,8 @@ function renderDuplicatesPage(page) {
 // New function to render the empty folders page
 function renderEmptyFoldersPage(page) {
   // TO DO: implement rendering of empty folders page
+  document.getElementById('back-button').style.display = 'block';
+
 }
 
 function applySearchFilter(items) {

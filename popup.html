@@ -94,10 +94,18 @@
     .break-word {
       word-break: break-all;
     }
+    #back-button {
+      position: absolute;
+    }
   </style>
 </head>
 <body>
     <div class="container-fluid">
+        <div class="text-center">
+            <button id="back-button" class="btn btn-secondary mb-4" style="display: none;">
+              <i class="fas fa-arrow-left"></i> Back
+            </button>
+          </div>
         <div class="text-center">
             <h1 class="my-4">Dash Bookmark Manager</h1>
             <p id="total-urls" class="font-weight-bold" style="display: none;">Total URLs: 0</p>
