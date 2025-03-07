@@ -4,27 +4,21 @@ let totalPages = 1;
 let duplicates = [];
 let filteredDuplicates = []; // Holds filtered results for the search bar
 let selectedBookmarks = new Set();
+let currentView = ''; // Add a new variable to keep track of the current view
 
 document.addEventListener('DOMContentLoaded', () => {
-    showLoading(); // Show loading message
-    loadDuplicates(); // Automatically load duplicates on launch
-
-    const searchBar = document.getElementById('searchBar');
-    searchBar.addEventListener('input', (event) => {
-    const searchTerm = event.target.value.toLowerCase();
-    filterDuplicates(searchTerm);
-    });
+    
 });
 
 function showLoading() {
     const resultDiv = document.getElementById('result');
     resultDiv.innerHTML = `<p class="text-center text-primary">Loading...</p>`;
-    }
+}
     
-    function hideLoading() {
+function hideLoading() {
     const resultDiv = document.getElementById('result');
     resultDiv.innerHTML = ""; // Clear the loading message
-    }
+}
 
 document.getElementById('deleteAll').addEventListener('click', () => {
   deleteSelectedBookmarks();
@@ -98,53 +92,80 @@ document.getElementById('back-button').addEventListener('click', () => {
     renderPage(currentPage);
   });
 
-// Add a new variable to keep track of the current view
-let currentView = '';
+  // Add event listeners to the buttons
+  document.getElementById('bookmarks-button').addEventListener('click', () => {
+    currentView = 'bookmarks';
+    renderBookmarksPage(currentView);
+  });
+  document.getElementById('duplicates-button').addEventListener('click', () => {
+    currentView = 'duplicates';
+    renderDuplicatesPage(currentView);
+  });
+  document.getElementById('empty-folders-button').addEventListener('click', () => {
+    currentView = 'empty-folders';
+    renderEmptyFoldersPage(currentView);
+  });
+
 
 // Modify the renderPage function to conditionally render the table
 function renderPage(page) {
   const resultDiv = document.getElementById('result');
+  renderHomePage();
+  
+  // Render the buttons
+//   const buttonsHtml = `
+//       <div style="text-align: center;">
+//       Find:
+//       <button id="bookmarks-button" class="btn btn-dark">Bookmarks</button>
+//       <button id="duplicates-button" class="btn btn-dark">Duplicate Bookmarks</button>
+//       <button id="empty-folders-button" class="btn btn-dark">Empty Folders</button>
+//     </div>
+//   `;
+//   resultDiv.innerHTML = buttonsHtml;
+  
+  
+  
+  // Render the initial view
+  if (currentView === 'duplicates') {
+    renderDuplicatesPage(page);
+  } else if (currentView === 'empty-folders') {
+    renderEmptyFoldersPage(currentView);
+  }  else if (currentView === 'bookmarks') {
+    renderBookmarksPage(currentView);
+  }
+  else if (currentView === '') {
+    renderHomePage(currentView);
+  }
+}
+
+function renderHomePage() {
   document.getElementById('back-button').style.display = 'none';
   document.getElementById('pagination-controls').style.display = "none";
   document.getElementById('searchBar').style.display = 'none';
   document.getElementById('total-urls').style.display = 'none';
   document.getElementById('total-duplicates').style.display = 'none';
-  
-  // Render the buttons
-  const buttonsHtml = `
-      <div style="text-align: center;">
-      Find:
-      <button id="search-button" class="btn btn-dark">Bookmarks</button>
-      <button id="duplicates-button" class="btn btn-dark">Duplicate Bookmarks</button>
-      <button id="empty-folders-button" class="btn btn-dark">Empty Folders</button>
-    </div>
-  `;
-  resultDiv.innerHTML = buttonsHtml;
-  
-  // Add event listeners to the buttons
-  document.getElementById('duplicates-button').addEventListener('click', () => {
-    currentView = 'duplicates';
-    renderDuplicatesPage(page);
-  });
-  document.getElementById('empty-folders-button').addEventListener('click', () => {
-    currentView = 'empty-folders';
-    renderEmptyFoldersPage(page);
-  });
-  
-  // Render the initial view
-  if (currentView === 'duplicates') {
-    renderDuplicatesPage(page);
-  }
+  document.getElementById('home-buttons').style.display = 'block';
+  document.getElementById('result').innerHTML = "";
 }
 
 // New function to render the duplicates page
 function renderDuplicatesPage(page) {
   // Show the search bar and delete all selected button
   document.getElementById('searchBar').style.display = 'block';
-  document.getElementById('deleteAll').style.display = 'block';
   document.getElementById('total-urls').style.display = 'block';
   document.getElementById('total-duplicates').style.display = 'block';
   document.getElementById('back-button').style.display = 'block';
+  document.getElementById('home-buttons').style.display = 'none';
+  updateDeleteAllButton() ;
+
+    showLoading(); // Show loading message
+    loadDuplicates(); // Automatically load duplicates on launch
+
+    const searchBar = document.getElementById('searchBar');
+    searchBar.addEventListener('input', (event) => {
+    const searchTerm = event.target.value.toLowerCase();
+    filterDuplicates(searchTerm);
+    });
 
   const resultDiv = document.getElementById('result');
   const filteredDuplicates = applySearchFilter(duplicates); // Apply the filter to get filtered results
@@ -177,7 +198,7 @@ function renderDuplicatesPage(page) {
     const isChecked = selectedBookmarks.has(bookmark.id) ? "checked" : "";
     table += `
       <tr>
-        <td><input type="checkbox" class="select-bookmark" data-id="${bookmark.id}" ${isChecked}></td>
+        <td><input id="checkbox-${bookmark.id}" type="checkbox" class="select-bookmark" data-id="${bookmark.id}" ${isChecked}></td>
         <td>${bookmark.title}</td>
         <td class="break-word"><a href="${bookmark.url}" target="_blank">${bookmark.url}</a></td>
         <td>${bookmark.folderPath}</td>
@@ -218,8 +239,9 @@ function renderDuplicatesPage(page) {
 
   document.querySelectorAll('.delete-btn').forEach((button) => {
     button.addEventListener('click', (event) => {
-      const bookmarkId = event.target.dataset.id;
-      chrome.bookmarks.remove(bookmarkId, () => {
+        const buttonElement = event.target.closest('.delete-btn');
+        const bookmarkId = buttonElement.dataset.id;
+        chrome.bookmarks.remove(bookmarkId, () => {
         alert('Bookmark deleted!');
         loadDuplicates();
       });
@@ -229,10 +251,17 @@ function renderDuplicatesPage(page) {
   updatePagination();
 }
 
+function renderBookmarksPage(page) {
+    // TO DO: implement rendering of empty folders page
+    document.getElementById('back-button').style.display = 'block';
+    document.getElementById('home-buttons').style.display = 'none';
+}
+
 // New function to render the empty folders page
 function renderEmptyFoldersPage(page) {
   // TO DO: implement rendering of empty folders page
-  document.getElementById('back-button').style.display = 'block';
+    document.getElementById('back-button').style.display = 'block';
+    document.getElementById('home-buttons').style.display = 'none';
 
 }
 
@@ -246,20 +275,20 @@ function applySearchFilter(items) {
     }
 
 function deleteSelectedBookmarks() {
-  const bookmarkIdsArray = Array.from(selectedBookmarks);
+    const bookmarkIdsArray = Array.from(selectedBookmarks);
   let deletionsCount = 0;
 
   bookmarkIdsArray.forEach((bookmarkId) => {
     chrome.bookmarks.remove(bookmarkId, () => {
       deletionsCount++;
       if (deletionsCount === bookmarkIdsArray.length) {
-        selectedBookmarks.clear();
-        alert('Selected bookmarks deleted!');
-        loadDuplicates();
+      selectedBookmarks.clear();
+      alert('Selected bookmarks deleted!');
+      loadDuplicates();
       }
     });
-  });
-}
+    });
+  }
 
 function updatePagination() {
   const paginationControls = document.getElementById('pagination-controls');
