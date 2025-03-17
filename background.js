@@ -32,24 +32,26 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         });
       }
 
-      async function traverseBookmarks(bookmarkNodes) {
-        try {
-          for (let node of bookmarkNodes) {
-            if (node.url) {
-              let folderPath = await getFolderPath(node);
-              if (bookmarkUrls.has(node.url)) {
-                bookmarkUrls.get(node.url).push({ ...node, folderPath });
-              } else {
-                bookmarkUrls.set(node.url, [{ ...node, folderPath }]);
-              }
-            }
-            if (node.children) {
-              await traverseBookmarks(node.children);
+      async function traverseBookmarks(bookmarkNodes, visitedNodes = new Set()) {
+        for (const node of bookmarkNodes) {
+          if (node && node.url) {
+            try {
+              const folderPath = await getFolderPath(node);
+              const nodesWithUrl = bookmarkUrls.get(node.url) || [];
+              bookmarkUrls.set(node.url, [...nodesWithUrl, { ...node, folderPath }]);
+            } catch (error) {
+              console.error("Error traversing bookmark:", error);
             }
           }
-        } catch (error) {
-          console.error("Error traversing bookmarks:", error);
-          throw error;
+
+          if (node && node.children && !visitedNodes.has(node.id)) {
+            try {
+              visitedNodes.add(node.id);
+              await traverseBookmarks(node.children, visitedNodes);
+            } catch (error) {
+              console.error("Error traversing bookmark children:", error);
+            }
+          }
         }
       }
 

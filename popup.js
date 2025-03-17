@@ -1,65 +1,223 @@
-import { showLoading, hideLoading, renderHomePage, displayError, addGlobalEventListeners, debounce } from './utils.js';
+import { showLoading, hideLoading, renderHomePage, displayError, addGlobalEventListeners, debounce, displayDuplicateCounts, applySearchFilter, CurrentViewEnum } from './utils.js';
 
-const itemsPerPage = 10;
-let currentPage = 1;
-let totalPages = 1;
-let duplicates = [];
-let filteredDuplicates = []; // Holds filtered results for the search bar
+const ItemsPerPage = 6;
+let CurrentView = CurrentViewEnum.HOME; // Add a new variable to keep track of the current view
+let CurrentPage = 1;
+let TotalPages = 1;
+let Duplicates = [];
+let FilteredDuplicates = []; // Holds filtered results for the search bar
 let selectedBookmarks = new Set();
-let currentView = ''; // Add a new variable to keep track of the current view
 
 document.addEventListener('DOMContentLoaded', () => {
     addGlobalEventListeners();
+    renderPage();
+
+    // Add event listeners to home buttons
+    document.getElementById('bookmarks-button').addEventListener('click', () => {
+        CurrentView = CurrentViewEnum.BOOKMARKS;
+        renderPage();
+    });
+    document.getElementById('duplicates-button').addEventListener('click', () => {
+        CurrentView = CurrentViewEnum.DUPLICATE_BOOKMARKS;
+        renderPage();
+    });
+    document.getElementById('empty-folders-button').addEventListener('click', () => {
+        CurrentView = CurrentViewEnum.EMPTY_FOLDERS;
+        renderPage();
+    });
 });
 
-document.getElementById('deleteAll').addEventListener('click', () => {
-    deleteSelectedBookmarks();
-});
+function renderPage() {
+    selectedBookmarks.clear();
+    updateDeleteAllButton();
+
+    if(CurrentView != CurrentViewEnum.HOME ){
+        // showLoading(); // Show loading message, making UI a bit busy
+        document.getElementById('back-button').style.display = 'block';
+        document.getElementById('home-buttons').style.display = 'none';
+    }
+
+    switch (CurrentView) {
+        case CurrentViewEnum.BOOKMARKS:
+            renderBookmarksPage();
+            break;
+        case CurrentViewEnum.DUPLICATE_BOOKMARKS:
+            renderDuplicatesBookmarksPage();
+            break;
+        case CurrentViewEnum.EMPTY_FOLDERS:
+            renderEmptyFoldersPage();
+            break;
+        case CurrentViewEnum.HOME:
+            renderHomePage();
+            break;
+    }
+}
+
+function renderBookmarksPage() {
+    // TO DO: implement rendering of empty folders page
+}
+
+// New function to render the duplicates page
+function renderDuplicatesBookmarksPage() {
+    // Show the search bar and delete all selected button
+    document.getElementById('searchBar').style.display = 'block';
+    const resultDiv = document.getElementById('result');
+
+    loadDuplicates().then(() => {
+        const filteredDuplicates = applySearchFilter(Duplicates); // Apply the filter to get filtered results
+        searchInputListener();
+
+        FilteredDuplicates = filteredDuplicates; // Update FilteredDuplicates array
+        TotalPages = Math.ceil(FilteredDuplicates.length / ItemsPerPage); // Update TotalPages
+        updatePagination(); // Call Update Pagination after updating FilteredDuplicates and TotalPages
+        
+        if (filteredDuplicates.length === 0) {
+            resultDiv.innerHTML = "<p class='text-center'>No duplicate bookmarks found.</p>";
+            document.getElementById('pagination-controls').style.display = "none"; // Hide pagination
+            return;
+        }
+        else {
+            if(filteredDuplicates.length == Duplicates.length){
+                document.getElementById('total-filtered-duplicates').style.display = 'none';
+            }
+            else{
+                document.getElementById('total-filtered-duplicates').style.display = 'block';
+                document.getElementById('total-filtered-duplicates').textContent = `Total Filtered URLs: ${filteredDuplicates.length}`;
+            }
+
+            document.getElementById('pagination-controls').style.display = "flex"; // Show pagination
+            const start = (CurrentPage - 1) * ItemsPerPage;
+            const end = start + ItemsPerPage;
+            const pageItems = filteredDuplicates.slice(start, end);
+
+            let table = `
+            <table class="table table-bordered table-striped">
+            <thead class="thead-dark">
+                <tr>
+                <th><input type="checkbox" id="selectAll" style="display: none;"></th>
+                <th>Title</th>
+                <th class="break-word">URL</th>
+                <th>Folder Path</th>
+                <th>Delete</th>
+                </tr>
+            </thead>
+            <tbody>
+            `;
+            pageItems.forEach((bookmark) => {
+                const isChecked = selectedBookmarks.has(bookmark.id) ? "checked" : "";
+                table += `
+            <tr>
+                <td><input id="checkbox-${bookmark.id}" type="checkbox" class="select-bookmark" data-id="${bookmark.id}" ${isChecked}></td>
+                <td>${bookmark.title}</td>
+                <td class="break-word"><a href="${bookmark.url}" target="_blank">${bookmark.url}</a></td>
+                <td>${bookmark.folderPath}</td>
+                <td><button class="delete-btn" data-id="${bookmark.id}"><i class="fas fa-trash"></i></button></td>
+            </tr>
+            `;
+            });
+
+            table += `</tbody></table>`;
+            resultDiv.innerHTML = table;
+
+            document.getElementById('selectAll').addEventListener('click', (event) => {
+                const isChecked = event.target.checked;
+                document.querySelectorAll('.select-bookmark').forEach((checkbox) => {
+                    checkbox.checked = isChecked;
+                    const bookmarkId = checkbox.dataset.id;
+                    if (isChecked) {
+                        selectedBookmarks.add(bookmarkId);
+                    } else {
+                        selectedBookmarks.delete(bookmarkId);
+                    }
+                });
+                updateDeleteAllButton(); // Update the Delete All button state
+            });
+
+            document.querySelectorAll('.select-bookmark').forEach((checkbox) => {
+                checkbox.addEventListener('click', (event) => {
+                    const bookmarkId = event.target.dataset.id;
+                    if (event.target.checked) {
+                        selectedBookmarks.add(bookmarkId);
+                    } else {
+                        selectedBookmarks.delete(bookmarkId);
+                    }
+                    updateDeleteAllButton(); // Update the Delete All button state
+                });
+            });
+
+            document.querySelectorAll('.delete-btn').forEach((button) => {
+                button.addEventListener('click', (event) => {
+                    const buttonElement = event.target.closest('.delete-btn');
+                    const bookmarkId = buttonElement.dataset.id;
+                    chrome.bookmarks.remove(bookmarkId, () => {
+                        alert('Bookmark deleted!');
+                        renderPage();
+                    });
+                });
+            });
+
+            document.getElementById('deleteAll').addEventListener('click', () => {
+                deleteSelectedBookmarks();
+            });
+        }
+    });
+}
+
+const searchInputListener = () => {
+    const performSearch = (query) => {
+      filterDuplicatesBySearchTerm(query);
+    };
+    const debouncedSearch = debounce((event) => performSearch(event.target.value), 300);
+    const searchInput = document.getElementById('searchBar');
+    searchInput.addEventListener('input', debouncedSearch);
+  };
 
 function loadDuplicates() {
-    try {
-        chrome.runtime.sendMessage({ action: "findDuplicates" }, (response) => {
-            if (chrome.runtime.lastError) {
-                console.error("Error sending message:", chrome.runtime.lastError.message);
-                displayError("Error finding duplicates: " + chrome.runtime.lastError.message);
-                return;
-            }
-            if (response && response.error) {
-                displayError(response.error);
-                return;
-            }
-            duplicates = response.duplicates || [];
-            filteredDuplicates = duplicates; // Initialize filtered duplicates
-            updateCounts();
-            totalPages = Math.ceil(filteredDuplicates.length / itemsPerPage);
-            renderPage(currentPage); // Render immediately on load
-        });
-    } catch (error) {
-        console.error("Unexpected error:", error);
-        displayError("Unexpected error occurred.");
-    }
+    return new Promise((resolve, reject) => {
+        try {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            chrome.runtime.sendMessage({ action: "findDuplicates" }, (response) => {
+                if (chrome.runtime.lastError) {
+                    console.error("Error sending message:", chrome.runtime.lastError.message);
+                    displayError("Error finding duplicates: " + chrome.runtime.lastError.message);
+                    return;
+                }
+                if (response && response.error) {
+                    displayError(response.error);
+                    return;
+                }
+                Duplicates = response.duplicates || [];
+                displayDuplicateCounts(Duplicates, CurrentView);
+                TotalPages = Math.ceil(Duplicates.length / ItemsPerPage);
+                FilteredDuplicates = Duplicates; // Initialize filtered duplicates
+                resolve();
+            });
+        } catch (error) {
+            console.error("Unexpected error:", error);
+            displayError("Unexpected error occurred.");
+            reject(error);
+        }
+    });
+}
+
+// New function to render the empty folders page
+function renderEmptyFoldersPage() {
+    // TO DO: implement rendering of empty folders page
+
 }
 
 function filterDuplicatesBySearchTerm(searchTerm) {
     const searchTermLower = searchTerm.toLowerCase();
-    filteredDuplicates = duplicates.filter(
+    FilteredDuplicates = Duplicates.filter(
         ({ title, url, folderPath }) =>
             (title && title.toLowerCase().includes(searchTermLower)) ||
             (url && url.toLowerCase().includes(searchTermLower)) ||
             (folderPath && folderPath.toLowerCase().includes(searchTermLower))
     );
-    currentPage = 1;
-    totalPages = Math.ceil(filteredDuplicates.length / itemsPerPage);
-    renderPage(currentPage);
+    TotalPages = Math.ceil(FilteredDuplicates.length / ItemsPerPage);
+    CurrentPage = 1; // Reset CurrentPage to 1
+    renderPage();
     updateDeleteAllButton();
-}
-
-function updateCounts() {
-    const totalUrls = filteredDuplicates.length;
-    const totalDuplicates = new Set(filteredDuplicates.map(({ url }) => url)).size;
-
-    document.getElementById('total-urls').textContent = `Total URLs: ${totalUrls}`;
-    document.getElementById('total-duplicates').textContent = `Total Duplicates: ${totalDuplicates}`;
 }
 
 function updateDeleteAllButton() {
@@ -68,173 +226,17 @@ function updateDeleteAllButton() {
 }
 
 document.getElementById('back-button').addEventListener('click', () => {
-    currentView = '';
-    renderPage(currentPage);
+    CurrentView = CurrentViewEnum.HOME;
+    renderPage();
 });
 
-// Add event listeners to the buttons
-document.getElementById('bookmarks-button').addEventListener('click', () => {
-    currentView = 'bookmarks';
-    renderBookmarksPage(currentView);
-});
-document.getElementById('duplicates-button').addEventListener('click', () => {
-    currentView = 'duplicates';
-    renderDuplicatesPage(currentView);
-});
-document.getElementById('empty-folders-button').addEventListener('click', () => {
-    currentView = 'empty-folders';
-    renderEmptyFoldersPage(currentView);
-});
-
-
-function renderPage(pageNumber) {
-    switch (currentView) {
-        case 'duplicates':
-            renderDuplicatesPage(pageNumber);
-            break;
-        case 'empty-folders':
-            renderEmptyFoldersPage(pageNumber);
-            break;
-        case 'bookmarks':
-            renderBookmarksPage(pageNumber);
-            break;
-        default:
-            renderHomePage();
-            break;
-    }
-}
-
-// New function to render the duplicates page
-function renderDuplicatesPage(page) {
-    // Show the search bar and delete all selected button
-    document.getElementById('searchBar').style.display = 'block';
-    document.getElementById('total-urls').style.display = 'block';
-    document.getElementById('total-duplicates').style.display = 'block';
-    document.getElementById('back-button').style.display = 'block';
-    document.getElementById('home-buttons').style.display = 'none';
-    updateDeleteAllButton();
-
-    showLoading(); // Show loading message
-    loadDuplicates(); // Automatically load duplicates on launch
-
-    const searchInput = document.getElementById('searchBar');
-    const performSearch = (query) => {
-        filterDuplicatesBySearchTerm(query);
-    };
-
-    const debouncedSearch = debounce((event) => performSearch(event.target.value), 300);
-    searchInput.addEventListener('input', debouncedSearch);
-
-    const resultDiv = document.getElementById('result');
-    const filteredDuplicates = applySearchFilter(duplicates); // Apply the filter to get filtered results
-
-    if (filteredDuplicates.length === 0) {
-        resultDiv.innerHTML = "<p class='text-center'>No duplicate bookmarks found.</p>";
-        document.getElementById('pagination-controls').style.display = "none"; // Hide pagination
-        return;
-    }
-
-    document.getElementById('pagination-controls').style.display = "flex"; // Show pagination
-    const start = (page - 1) * itemsPerPage;
-    const end = start + itemsPerPage;
-    const pageItems = filteredDuplicates.slice(start, end);
-
-    let table = `
-    <table class="table table-bordered table-striped">
-      <thead class="thead-dark">
-        <tr>
-          <th><input type="checkbox" id="selectAll" style="display: none;"></th>
-          <th>Title</th>
-          <th class="break-word">URL</th>
-          <th>Folder Path</th>
-          <th>Delete</th>
-        </tr>
-      </thead>
-      <tbody>
-  `;
-    pageItems.forEach((bookmark) => {
-        const isChecked = selectedBookmarks.has(bookmark.id) ? "checked" : "";
-        table += `
-      <tr>
-        <td><input id="checkbox-${bookmark.id}" type="checkbox" class="select-bookmark" data-id="${bookmark.id}" ${isChecked}></td>
-        <td>${bookmark.title}</td>
-        <td class="break-word"><a href="${bookmark.url}" target="_blank">${bookmark.url}</a></td>
-        <td>${bookmark.folderPath}</td>
-        <td><button class="delete-btn" data-id="${bookmark.id}"><i class="fas fa-trash"></i></button></td>
-      </tr>
-    `;
-    });
-    updateDeleteAllButton();
-
-    table += `</tbody></table>`;
-    resultDiv.innerHTML = table;
-
-    document.getElementById('selectAll').addEventListener('click', (event) => {
-        const isChecked = event.target.checked;
-        document.querySelectorAll('.select-bookmark').forEach((checkbox) => {
-            checkbox.checked = isChecked;
-            const bookmarkId = checkbox.dataset.id;
-            if (isChecked) {
-                selectedBookmarks.add(bookmarkId);
-            } else {
-                selectedBookmarks.delete(bookmarkId);
-            }
-        });
-        updateDeleteAllButton(); // Update the Delete All button state
-    });
-
-    document.querySelectorAll('.select-bookmark').forEach((checkbox) => {
-        checkbox.addEventListener('click', (event) => {
-            const bookmarkId = event.target.dataset.id;
-            if (event.target.checked) {
-                selectedBookmarks.add(bookmarkId);
-            } else {
-                selectedBookmarks.delete(bookmarkId);
-            }
-            updateDeleteAllButton(); // Update the Delete All button state
-        });
-    });
-
-    document.querySelectorAll('.delete-btn').forEach((button) => {
-        button.addEventListener('click', (event) => {
-            const buttonElement = event.target.closest('.delete-btn');
-            const bookmarkId = buttonElement.dataset.id;
-            chrome.bookmarks.remove(bookmarkId, () => {
-                alert('Bookmark deleted!');
-                loadDuplicates();
-            });
-        });
-    });
-
-    updatePagination();
-}
-
-function renderBookmarksPage(page) {
-    // TO DO: implement rendering of empty folders page
-    document.getElementById('back-button').style.display = 'block';
-    document.getElementById('home-buttons').style.display = 'none';
-
-
-}
-
-// New function to render the empty folders page
-function renderEmptyFoldersPage(page) {
-    // TO DO: implement rendering of empty folders page
-    document.getElementById('back-button').style.display = 'block';
-    document.getElementById('home-buttons').style.display = 'none';
-
-}
-
-function applySearchFilter(items) {
-    const searchBar = document.getElementById('searchBar'); // Assuming there is a search bar
-    const filterText = searchBar ? searchBar.value.toLowerCase() : "";
-
-    return items.filter((item) =>
-        item.title.toLowerCase().includes(filterText) || item.url.toLowerCase().includes(filterText)
-    );
-}
-
+let previousSelectedBookmarks = new Set();
 function deleteSelectedBookmarks() {
+    if (selectedBookmarks.size === previousSelectedBookmarks.size && [...selectedBookmarks].every((value, index) => value === [...previousSelectedBookmarks][index])) {
+        return;
+      }
+      previousSelectedBookmarks = new Set(selectedBookmarks);
+    
     const bookmarkIds = Array.from(selectedBookmarks);
     let removedCount = 0;
 
@@ -244,7 +246,7 @@ function deleteSelectedBookmarks() {
             if (removedCount === bookmarkIds.length) {
                 selectedBookmarks.clear();
                 alert('Selected bookmarks deleted!');
-                loadDuplicates();
+                renderPage();
             }
         });
     });
@@ -254,18 +256,18 @@ function updatePagination() {
     const paginationControls = document.getElementById('pagination-controls');
     paginationControls.innerHTML = '';
 
-    for (let pageNumber = 1; pageNumber <= totalPages; pageNumber++) {
+    for (let pageNumber = 1; pageNumber <= TotalPages; pageNumber++) {
         const pageItem = document.createElement('li');
         pageItem.classList.add('page-item');
 
-        if (pageNumber === currentPage) {
+        if (pageNumber === CurrentPage) {
             pageItem.classList.add('active');
         }
 
         pageItem.innerHTML = `<a class="page-link" href="#">${pageNumber}</a>`;
         pageItem.addEventListener('click', () => {
-            currentPage = pageNumber;
-            renderPage(currentPage);
+            CurrentPage = pageNumber;
+            renderPage();
         });
 
         paginationControls.appendChild(pageItem);
