@@ -49,6 +49,8 @@ function renderPage() {
             renderEmptyFoldersPage();
             break;
         case CurrentViewEnum.HOME:
+            CurrentPage = 1;
+            TotalPages = 1;
             renderHomePage();
             break;
     }
@@ -68,8 +70,9 @@ function renderDuplicatesBookmarksPage() {
 
         FilteredDuplicates = filteredDuplicates; // Update FilteredDuplicates array
         TotalPages = Math.ceil(FilteredDuplicates.length / ItemsPerPage); // Update TotalPages
+        CurrentPage = Math.min(CurrentPage, TotalPages);
         updatePagination(); // Call Update Pagination after updating FilteredDuplicates and TotalPages
-        
+
         if (filteredDuplicates.length === 0) {
             resultDiv.innerHTML = "<p class='text-center'>No duplicate bookmarks found.</p>";
             document.getElementById('pagination-controls').style.display = "none"; // Hide pagination
@@ -209,6 +212,7 @@ function renderEmptyFoldersPage() {
 
         FilteredDuplicates = filteredEmptyFolders; // Update FilteredDuplicates array
         TotalPages = Math.ceil(FilteredDuplicates.length / ItemsPerPage); // Update TotalPages
+        CurrentPage = Math.min(CurrentPage, TotalPages);
         updatePagination(); // Call Update Pagination after updating FilteredDuplicates and TotalPages
 
         if (filteredEmptyFolders.length === 0) {
@@ -226,10 +230,10 @@ function renderEmptyFoldersPage() {
             <table class="table table-bordered table-striped">
             <thead class="thead-dark">
                 <tr>
-                <th><input type="checkbox" id="selectAll" style="display: none;"></th>
-                <th>Title</th>
-                <th class="break-word">Folder Path</th>
-                <th>Delete</th>
+                    <th><input type="checkbox" id="selectAll" style="display: none;"></th>
+                    <th>Title</th>
+                    <th class="break-word">Folder Path</th>
+                    <th>Delete</th>
                 </tr>
             </thead>
             <tbody>
@@ -242,7 +246,6 @@ function renderEmptyFoldersPage() {
                 <td>${folder.title}</td>
                 <td>${folder.folderPath}</td>
                 <td><button class="delete-btn" data-id="${folder.id}"><i class="fas fa-trash"></i></button></td>
-
             </tr>
             `;
             });
@@ -283,7 +286,7 @@ function renderEmptyFoldersPage() {
                     const buttonElement = event.target.closest('.delete-btn');
                     const bookmarkId = buttonElement.dataset.id;
                     chrome.bookmarks.remove(bookmarkId, () => {
-                        alert('Bookmark deleted!');
+                        alert('Selected bookmarks deleted!');
                         renderPage();
                     });
                 });
