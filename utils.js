@@ -16,8 +16,8 @@ function renderHomePage() {
     document.getElementById('pagination-controls').style.display = "none";
 
     document.getElementById('total-urls').style.display = 'none';
-    document.getElementById('total-duplicates').style.display = 'none';
-    document.getElementById('total-filtered-duplicates').style.display = 'none';
+    document.getElementById('total-items').style.display = 'none';
+    document.getElementById('total-filtered-items').style.display = 'none';
     document.getElementById('home-buttons').style.display = 'block';
 
     document.getElementById('result').innerHTML = '';
@@ -51,14 +51,19 @@ function debounce(callback, wait) {
     };
 }
 
-function displayDuplicateCounts(duplicates, currentView) {
+function displayCounts(duplicates, currentView) {
     const totalUrls = duplicates.length;
-    const totalDuplicates = new Set(duplicates.map(({ url }) => url)).size;
-
     document.getElementById('total-urls').style.display = 'block';
-    document.getElementById('total-urls').textContent = `Total URLs: ${totalUrls}`;
-    document.getElementById('total-duplicates').style.display = 'block';
-    document.getElementById('total-duplicates').textContent = `Total Duplicates: ${totalDuplicates}`;
+
+    if(currentView == CurrentViewEnum.DUPLICATE_BOOKMARKS) {
+        document.getElementById('total-urls').textContent = `Total Duplicate URLs: ${totalUrls}`;
+        const totalDuplicates = new Set(duplicates.map(({ url }) => url)).size;
+        document.getElementById('total-items').style.display = 'block';
+        document.getElementById('total-items').textContent = `Total Duplicates: ${totalDuplicates}`;
+    }
+    else if(currentView == CurrentViewEnum.EMPTY_FOLDERS) {
+        document.getElementById('total-urls').textContent = `Total Empty Folders: ${totalUrls}`;
+    }
 }
 
 function applySearchFilter(items) {
@@ -74,4 +79,4 @@ function applySearchFilter(items) {
     );
 }
 
-export { addGlobalEventListeners, renderHomePage, showLoading, hideLoading, displayError, debounce, displayDuplicateCounts, applySearchFilter, CurrentViewEnum};
+export { addGlobalEventListeners, renderHomePage, showLoading, hideLoading, displayError, debounce, displayCounts, applySearchFilter, CurrentViewEnum};
