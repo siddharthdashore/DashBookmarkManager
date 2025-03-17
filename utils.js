@@ -55,7 +55,7 @@ function displayCounts(duplicates, currentView) {
     const totalUrls = duplicates.length;
     document.getElementById('total-urls').style.display = 'block';
 
-    if(currentView == CurrentViewEnum.DUPLICATE_BOOKMARKS) {
+    if(currentView == CurrentViewEnum.DUPLICATE_BOOKMARKS || currentView == CurrentViewEnum.BOOKMARKS) {
         document.getElementById('total-urls').textContent = `Total Duplicate URLs: ${totalUrls}`;
         const totalDuplicates = new Set(duplicates.map(({ url }) => url)).size;
         document.getElementById('total-items').style.display = 'block';

@@ -1,12 +1,15 @@
 import { showLoading, hideLoading, renderHomePage, displayError, addGlobalEventListeners, debounce, displayCounts, applySearchFilter, CurrentViewEnum } from './utils.js';
 
-const ItemsPerPage = 6;
+const ItemsPerPage = 4;
 let CurrentView = CurrentViewEnum.HOME; // Add a new variable to keep track of the current view
 let CurrentPage = 1;
 let TotalPages = 1;
 let ItemsList = [];
 let FilteredItems = []; // Holds filtered results for the search bar
 let SelectedItems = new Set();
+let actionStrAllBookmark = "findAllBookmarks"
+let actionStrDuplicateBookmark = "findDuplicates"
+let actionStrEmptyFolder = "findEmptyFolders"
 
 document.addEventListener('DOMContentLoaded', () => {
     addGlobalEventListeners();
@@ -17,12 +20,19 @@ document.addEventListener('DOMContentLoaded', () => {
         CurrentView = CurrentViewEnum.BOOKMARKS;
         renderPage();
     });
+    
     document.getElementById('duplicates-button').addEventListener('click', () => {
         CurrentView = CurrentViewEnum.DUPLICATE_BOOKMARKS;
         renderPage();
     });
+
     document.getElementById('empty-folders-button').addEventListener('click', () => {
         CurrentView = CurrentViewEnum.EMPTY_FOLDERS;
+        renderPage();
+    });
+
+    document.getElementById('back-button').addEventListener('click', () => {
+        CurrentView = CurrentViewEnum.HOME;
         renderPage();
     });
 });
@@ -40,13 +50,13 @@ function renderPage() {
 
     switch (CurrentView) {
         case CurrentViewEnum.BOOKMARKS:
-            renderBookmarksPage();
+            renderBookmarksPage(actionStrAllBookmark);
             break;
         case CurrentViewEnum.DUPLICATE_BOOKMARKS:
-            renderDuplicatesBookmarksPage();
+            renderBookmarksPage(actionStrDuplicateBookmark);
             break;
         case CurrentViewEnum.EMPTY_FOLDERS:
-            renderEmptyFoldersPage();
+            renderEmptyFoldersPage(actionStrEmptyFolder);
             break;
         case CurrentViewEnum.HOME:
             CurrentPage = 1;
@@ -56,15 +66,10 @@ function renderPage() {
     }
 }
 
-function renderBookmarksPage() {
-    // TO DO: implement rendering of empty folders page
-}
-
-// New function to render the duplicates page
-function renderDuplicatesBookmarksPage() {
+function renderBookmarksPage(actionString) {
     const resultDiv = document.getElementById('result');
 
-    loadDuplicates().then(() => {
+    loadBookmarks(actionString).then(() => {
         const filteredDuplicates = applySearchFilter(ItemsList); // Apply the filter to get filtered results
         searchInputListener();
 
@@ -152,7 +157,7 @@ function renderDuplicatesBookmarksPage() {
                     const buttonElement = event.target.closest('.delete-btn');
                     const bookmarkId = buttonElement.dataset.id;
                     chrome.bookmarks.remove(bookmarkId, () => {
-                        alert('Bookmark deleted!');
+                        alert('Selected bookmarks deleted!');
                         renderPage();
                     });
                 });
@@ -174,11 +179,11 @@ const searchInputListener = () => {
     searchInput.addEventListener('input', debouncedSearch);
   };
 
-function loadDuplicates() {
+function loadBookmarks(actionString) {
     return new Promise((resolve, reject) => {
         try {
             window.scrollTo({ top: 0, behavior: 'smooth' });
-            chrome.runtime.sendMessage({ action: "findDuplicates" }, (response) => {
+            chrome.runtime.sendMessage({ action: actionString }, (response) => {
                 if (chrome.runtime.lastError) {
                     console.error("Error sending message:", chrome.runtime.lastError.message);
                     displayError("Error finding duplicates: " + chrome.runtime.lastError.message);
@@ -188,7 +193,7 @@ function loadDuplicates() {
                     displayError(response.error);
                     return;
                 }
-                ItemsList = response.duplicates || [];
+                ItemsList = response.fetchedBookmarks || [];
                 displayCounts(ItemsList, CurrentView);
                 TotalPages = Math.ceil(ItemsList.length / ItemsPerPage);
                 FilteredItems = ItemsList; // Initialize filtered duplicates
@@ -202,11 +207,10 @@ function loadDuplicates() {
     });
 }
 
-// New function to render the empty folders page
-function renderEmptyFoldersPage() {
+function renderEmptyFoldersPage(actionString) {
     const resultDiv = document.getElementById('result');
 
-    loadEmptyFolders().then(() => {
+    loadBookmarks(actionString).then(() => {
         const filteredEmptyFolders = applySearchFilter(ItemsList); // Apply the filter to get filtered results
         searchInputListener();
 
@@ -307,33 +311,6 @@ function renderEmptyFoldersPage() {
     });
 }
 
-function loadEmptyFolders() {
-    return new Promise((resolve, reject) => {
-      chrome.runtime.sendMessage({ action: "findEmptyFolders" }, (response) => {
-        if (chrome.runtime.lastError) {
-          console.error("Error sending message:", chrome.runtime.lastError.message);
-          displayError("Error finding empty folders: " + chrome.runtime.lastError.message);
-          return;
-        }
-        if (response && response.error) {
-          displayError(response.error);
-          return;
-        }
-        const emptyFolders = response.emptyFolders || [];
-        const formattedEmptyFolders = emptyFolders.map((folder) => {
-          return {
-            id: folder.id,
-            title: folder.title,
-            folderPath: folder.folderPath || '',
-          };
-        });
-        ItemsList = formattedEmptyFolders;
-        displayCounts(ItemsList, CurrentView);
-        resolve();
-      });
-    });
-  }
-
 function filterDuplicatesBySearchTerm(searchTerm) {
     const searchTermLower = searchTerm.toLowerCase();
     FilteredItems = ItemsList.filter(
@@ -352,11 +329,6 @@ function updateDeleteAllButton() {
     const deleteAllButton = document.getElementById('deleteAll');
     deleteAllButton.style.display = SelectedItems.size <= 1 ? 'none' : 'block';
 }
-
-document.getElementById('back-button').addEventListener('click', () => {
-    CurrentView = CurrentViewEnum.HOME;
-    renderPage();
-});
 
 let previousSelectedBookmarks = new Set();
 function deleteSelectedBookmarks() {

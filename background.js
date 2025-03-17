@@ -8,7 +8,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
    if (request.action === "findDuplicates") {
     chrome.bookmarks.getTree(async (bookmarks) => {
       const bookmarkUrls = new Map();
-      const duplicates = [];
+      const fetchedBookmarks = [];
 
       const getFolderPath = async (node) => {
         const path = [];
@@ -54,10 +54,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         // Collect duplicates
         for (const [url, nodes] of bookmarkUrls) {
           if (nodes.length > 1) {
-            duplicates.push(...nodes);
+            fetchedBookmarks.push(...nodes);
           }
         }
-        sendResponse({ duplicates });
+        sendResponse({ fetchedBookmarks });
       } catch (error) {
         console.error("Error processing bookmarks:", error);
         sendResponse({ error: error.message });
@@ -66,7 +66,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true; // Indicates that the response will be sent asynchronously
   } else if (request.action === "findEmptyFolders") {
     chrome.bookmarks.getTree(async (bookmarks) => {
-      const emptyFolders = [];
+      const fetchedBookmarks = [];
 
       const getFolderPath = async (node) => {
         const path = [];
@@ -89,7 +89,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           if (node.children && node.children.length === 0) {
             try {
               const folderPath = await getFolderPath(node);
-              emptyFolders.push({
+              fetchedBookmarks.push({
                 id: node.id,
                 title: node.title,
                 url: '',
@@ -113,7 +113,67 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
       try {
         await traverseBookmarks(bookmarks);
-        sendResponse({ emptyFolders });
+        sendResponse({ fetchedBookmarks });
+      } catch (error) {
+        console.error("Error processing bookmarks:", error);
+        sendResponse({ error: error.message });
+      }
+    });
+    return true; // Indicates that the response will be sent asynchronously
+  }  else if (request.action === "findAllBookmarks") {
+    chrome.bookmarks.getTree(async (bookmarks) => {
+      const bookmarkUrls = new Map();
+      const fetchedBookmarks = [];
+
+      const getFolderPath = async (node) => {
+        const path = [];
+        while (node.parentId) {
+          const parentNodes = await new Promise((resolve) => {
+            chrome.bookmarks.get(node.parentId, resolve);
+          });
+          if (chrome.runtime.lastError) {
+            console.error(
+              "Error getting parent node:",
+              chrome.runtime.lastError
+            );
+            return;
+          }
+          path.unshift(parentNodes[0].title);
+          node = parentNodes[0];
+        }
+        return path.join(" -> ");
+      };
+
+      const traverseBookmarks = async (bookmarkNodes, visitedNodes = new Set()) => {
+        for (const node of bookmarkNodes) {
+          if (node.url) {
+            try {
+              const folderPath = await getFolderPath(node);
+              const nodesWithUrl = bookmarkUrls.get(node.url) || [];
+              bookmarkUrls.set(node.url, [...nodesWithUrl, { ...node, folderPath }]);
+            } catch (error) {
+              console.error("Error traversing bookmark:", error);
+            }
+          }
+
+          if (node.children && !visitedNodes.has(node.id)) {
+            try {
+              visitedNodes.add(node.id);
+              await traverseBookmarks(node.children, visitedNodes);
+            } catch (error) {
+              console.error("Error traversing bookmark children:", error);
+            }
+          }
+        }
+      };
+
+      try {
+        await traverseBookmarks(bookmarks);
+        // Collect all bookmarks
+        for (const [url, nodes] of bookmarkUrls) {
+            fetchedBookmarks.push(...nodes);
+        }
+        sendResponse({ fetchedBookmarks });
       } catch (error) {
         console.error("Error processing bookmarks:", error);
         sendResponse({ error: error.message });
