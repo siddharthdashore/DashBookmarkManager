@@ -32,9 +32,10 @@ function renderPage() {
     updateDeleteAllButton();
 
     if(CurrentView != CurrentViewEnum.HOME ){
-        // showLoading(); // Show loading message, making UI a bit busy
+        showLoading(); // Show loading message, making UI a bit busy
         document.getElementById('back-button').style.display = 'block';
         document.getElementById('home-buttons').style.display = 'none';
+        document.getElementById('searchBar').style.display = 'block';
     }
 
     switch (CurrentView) {
@@ -59,8 +60,6 @@ function renderBookmarksPage() {
 
 // New function to render the duplicates page
 function renderDuplicatesBookmarksPage() {
-    // Show the search bar and delete all selected button
-    document.getElementById('searchBar').style.display = 'block';
     const resultDiv = document.getElementById('result');
 
     loadDuplicates().then(() => {
@@ -202,9 +201,126 @@ function loadDuplicates() {
 
 // New function to render the empty folders page
 function renderEmptyFoldersPage() {
-    // TO DO: implement rendering of empty folders page
+    const resultDiv = document.getElementById('result');
 
+    loadEmptyFolders().then(() => {
+        const filteredEmptyFolders = applySearchFilter(Duplicates); // Apply the filter to get filtered results
+        searchInputListener();
+
+        FilteredDuplicates = filteredEmptyFolders; // Update FilteredDuplicates array
+        TotalPages = Math.ceil(FilteredDuplicates.length / ItemsPerPage); // Update TotalPages
+        updatePagination(); // Call Update Pagination after updating FilteredDuplicates and TotalPages
+
+        if (filteredEmptyFolders.length === 0) {
+            resultDiv.innerHTML = "<p class='text-center'>No empty folders found.</p>";
+            document.getElementById('pagination-controls').style.display = "none"; // Hide pagination
+            return;
+        } else {
+            document.getElementById('pagination-controls').style.display = "flex"; // Show pagination
+
+            const start = (CurrentPage - 1) * ItemsPerPage;
+            const end = start + ItemsPerPage;
+            const pageItems = filteredEmptyFolders.slice(start, end);
+
+            let table = `
+            <table class="table table-bordered table-striped">
+            <thead class="thead-dark">
+                <tr>
+                <th><input type="checkbox" id="selectAll" style="display: none;"></th>
+                <th>Title</th>
+                <th class="break-word">Folder Path</th>
+                <th>Delete</th>
+                </tr>
+            </thead>
+            <tbody>
+            `;
+            pageItems.forEach((folder) => {
+                const isChecked = selectedBookmarks.has(folder.id) ? "checked" : "";
+                table += `
+            <tr>
+                <td><input id="checkbox-${folder.id}" type="checkbox" class="select-bookmark" data-id="${folder.id}" ${isChecked}></td>
+                <td>${folder.title}</td>
+                <td>${folder.folderPath}</td>
+                <td><button class="delete-btn" data-id="${folder.id}"><i class="fas fa-trash"></i></button></td>
+
+            </tr>
+            `;
+            });
+            table += `
+            </tbody>
+            </table>
+            `;
+            resultDiv.innerHTML = table;
+
+            document.getElementById('selectAll').addEventListener('click', (event) => {
+                const isChecked = event.target.checked;
+                document.querySelectorAll('.select-bookmark').forEach((checkbox) => {
+                    checkbox.checked = isChecked;
+                    const bookmarkId = checkbox.dataset.id;
+                    if (isChecked) {
+                        selectedBookmarks.add(bookmarkId);
+                    } else {
+                        selectedBookmarks.delete(bookmarkId);
+                    }
+                });
+                updateDeleteAllButton(); // Update the Delete All button state
+            });
+
+            document.querySelectorAll('.select-bookmark').forEach((checkbox) => {
+                checkbox.addEventListener('click', (event) => {
+                    const bookmarkId = event.target.dataset.id;
+                    if (event.target.checked) {
+                        selectedBookmarks.add(bookmarkId);
+                    } else {
+                        selectedBookmarks.delete(bookmarkId);
+                    }
+                    updateDeleteAllButton(); // Update the Delete All button state
+                });
+            });
+
+            document.querySelectorAll('.delete-btn').forEach((button) => {
+                button.addEventListener('click', (event) => {
+                    const buttonElement = event.target.closest('.delete-btn');
+                    const bookmarkId = buttonElement.dataset.id;
+                    chrome.bookmarks.remove(bookmarkId, () => {
+                        alert('Bookmark deleted!');
+                        renderPage();
+                    });
+                });
+            });
+
+            document.getElementById('deleteAll').addEventListener('click', () => {
+                deleteSelectedBookmarks();
+            });
+        }
+    });
 }
+
+function loadEmptyFolders() {
+    return new Promise((resolve, reject) => {
+      chrome.runtime.sendMessage({ action: "findEmptyFolders" }, (response) => {
+        if (chrome.runtime.lastError) {
+          console.error("Error sending message:", chrome.runtime.lastError.message);
+          displayError("Error finding empty folders: " + chrome.runtime.lastError.message);
+          return;
+        }
+        if (response && response.error) {
+          displayError(response.error);
+          return;
+        }
+        const emptyFolders = response.emptyFolders || [];
+        const formattedEmptyFolders = emptyFolders.map((folder) => {
+          return {
+            id: folder.id,
+            title: folder.title,
+            folderPath: folder.folderPath || '',
+          };
+        });
+        Duplicates = formattedEmptyFolders;
+        resolve();
+      });
+    });
+  }
 
 function filterDuplicatesBySearchTerm(searchTerm) {
     const searchTermLower = searchTerm.toLowerCase();
@@ -241,12 +357,27 @@ function deleteSelectedBookmarks() {
     let removedCount = 0;
 
     bookmarkIds.forEach((id) => {
-        chrome.bookmarks.remove(id, () => {
-            removedCount++;
-            if (removedCount === bookmarkIds.length) {
-                selectedBookmarks.clear();
-                alert('Selected bookmarks deleted!');
-                renderPage();
+        chrome.bookmarks.get(id, (bookmark) => {
+            if (bookmark[0].children) {
+                // If the bookmark is a folder, remove it with removeTree
+                chrome.bookmarks.removeTree(id, () => {
+                    removedCount++;
+                    if (removedCount === bookmarkIds.length) {
+                        selectedBookmarks.clear();
+                        alert('Selected bookmark folder deleted!');
+                        renderPage();
+                    }
+                });
+            } else {
+                // If the bookmark is not a folder, remove it with remove
+                chrome.bookmarks.remove(id, () => {
+                    removedCount++;
+                    if (removedCount === bookmarkIds.length) {
+                        selectedBookmarks.clear();
+                        alert('Selected bookmarks deleted!');
+                        renderPage();
+                    }
+                });
             }
         });
     });

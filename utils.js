@@ -63,10 +63,14 @@ function displayDuplicateCounts(duplicates, currentView) {
 
 function applySearchFilter(items) {
     const searchBar = document.getElementById('searchBar'); // Assuming there is a search bar
-    const filterText = searchBar ? searchBar.value.toLowerCase() : "";
+    const filterText = searchBar?.value?.toLowerCase() ?? "";
+
+    if(filterText == "") return items;
 
     return items.filter((item) =>
-        item.title.toLowerCase().includes(filterText) || item.url.toLowerCase().includes(filterText)
+        (item.title?.toLowerCase() || "").includes(filterText) ||
+        (item.url?.toLowerCase() || "").includes(filterText) ||
+        (item.folderPath?.toLowerCase() || "").includes(filterText)
     );
 }
 
