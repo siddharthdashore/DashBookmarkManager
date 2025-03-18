@@ -14,6 +14,7 @@ function addGlobalEventListeners() {
 function renderHomePage() {
     document.getElementById('back-button').style.display = 'none';
     document.getElementById('pagination-controls').style.display = "none";
+    document.getElementById('settings-modal').style.display = 'none';
 
     document.getElementById('total-urls').style.display = 'none';
     document.getElementById('total-items').style.display = 'none';

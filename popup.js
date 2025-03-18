@@ -1,8 +1,9 @@
 import { showLoading, hideLoading, renderHomePage, displayError, addGlobalEventListeners, debounce, displayCounts, applySearchFilter, CurrentViewEnum } from './utils.js';
 
-const ItemsPerPage = 4;
+let ItemsPerPage = 4;
 let CurrentView = CurrentViewEnum.HOME; // Add a new variable to keep track of the current view
 let CurrentPage = 1;
+let CurrentTheme = 'light';
 let TotalPages = 1;
 let ItemsList = [];
 let FilteredItems = []; // Holds filtered results for the search bar
@@ -14,6 +15,17 @@ let actionStrEmptyFolder = "findEmptyFolders"
 document.addEventListener('DOMContentLoaded', () => {
     addGlobalEventListeners();
     renderPage();
+
+    const theme = localStorage.getItem('theme');
+    const itemsPerPage = parseInt(localStorage.getItem('itemsPerPage'));
+    
+    if (theme) {
+        updateTheme(theme);
+    }
+    
+    if (itemsPerPage) {
+        updateItemsPerPage(itemsPerPage);
+    }
 
     // Add event listeners to home buttons
     document.getElementById('bookmarks-button').addEventListener('click', () => {
@@ -36,8 +48,13 @@ document.addEventListener('DOMContentLoaded', () => {
         renderPage();
     });
 
-    // Add an event listener to the theme toggle button
+    document.getElementById('settings-button').addEventListener('click', () => {
+        CurrentView = CurrentViewEnum.SETTINGS;
+        renderPage();
+      });
+
     document.getElementById('theme-toggle').addEventListener('click', () => {
+        CurrentView = CurrentViewEnum.SETTINGS;
         // Toggle the dark mode class on the body
         document.body.classList.toggle('dark-mode');
         // Update the button text
@@ -49,13 +66,60 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         themeToggle.blur();
     });
+
+      document.getElementById('save-settings-button').addEventListener('click', () => {
+        saveSettings();
+      });
 });
+
+function updateTheme(theme) {
+    if (theme === 'light') {
+      document.body.classList.remove('dark-mode');
+    } else if (theme === 'dark') {
+      document.body.classList.add('dark-mode');
+    }
+    CurrentTheme = theme;
+  }
+  
+  function updateItemsPerPage(itemsPerPage) {
+    ItemsPerPage = itemsPerPage;
+    renderPage();
+  }
+
+  function renderSettingsPage() {
+    document.getElementById('back-button').style.display = 'block';
+    document.getElementById('home-buttons').style.display = 'none';
+    document.getElementById('settings-modal').style.display = 'block';
+
+    document.getElementById('theme-select').value = CurrentTheme;
+    document.getElementById('items-per-page-input').value = ItemsPerPage;
+  }
+
+  function saveSettings() {
+    const themeSelect = document.getElementById('theme-select');
+        const itemsPerPageInput = document.getElementById('items-per-page-input');
+        const theme = themeSelect.value;
+        const itemsPerPage = parseInt(itemsPerPageInput.value);
+        
+        // Save the new settings
+        localStorage.setItem('theme', theme);
+        localStorage.setItem('itemsPerPage', itemsPerPage);
+        
+        // Update the theme and items per page
+        updateTheme(theme);
+        updateItemsPerPage(itemsPerPage);
+        
+        // Close the settings modal
+        const settingsModal = document.getElementById('settings-modal');
+        settingsModal.style.display = 'none';
+        localStorage.setItem('itemsPerPage', itemsPerPage);
+  }
 
 function renderPage() {
     SelectedItems.clear();
     updateDeleteAllButton();
 
-    if(CurrentView != CurrentViewEnum.HOME ){
+    if(CurrentView == CurrentViewEnum.BOOKMARKS || CurrentView == CurrentViewEnum.DUPLICATE_BOOKMARKS || CurrentView == CurrentViewEnum.EMPTY_FOLDERS){
         showLoading(); // Show loading message, making UI a bit busy
         document.getElementById('back-button').style.display = 'block';
         document.getElementById('home-buttons').style.display = 'none';
@@ -74,6 +138,9 @@ function renderPage() {
         CurrentPage = 1;
         TotalPages = 1;
         renderHomePage();
+        return;
+    } else if(CurrentView == CurrentViewEnum.SETTINGS){
+        renderSettingsPage();
         return;
     }
 
@@ -107,14 +174,14 @@ function renderPage() {
             const pageItems = filteredItems.slice(start, end);
 
             let table = `
-            <table class="table table-bordered table-striped">
+            <table>
             <thead class="thead-dark">
                 <tr>
-                <th><input type="checkbox" id="selectAll" style="display: none;"></th>
-                <th style="text-align: center;">Title</th>
-                ${CurrentView === CurrentViewEnum.EMPTY_FOLDERS ? '' : '<th style="text-align: center;" class="break-word">URL</th>'}
-                <th style="text-align: center;">Folder Path</th>
-                <th style="text-align: center;">Delete</th>
+                    <th><input type="checkbox" id="selectAll" style="display: none;"></th>
+                    <th style="text-align: center;">Title</th>
+                    ${CurrentView === CurrentViewEnum.EMPTY_FOLDERS ? '' : '<th style="text-align: center;" class="break-word">URL</th>'}
+                    <th style="text-align: center;">Folder Path</th>
+                    <th style="text-align: center;">Delete</th>
                 </tr>
             </thead>
             <tbody>
@@ -171,7 +238,7 @@ function renderPage() {
                     const buttonElement = event.target.closest('.delete-btn');
                     const bookmarkId = buttonElement.dataset.id;
                     chrome.bookmarks.remove(bookmarkId, () => {
-                        alert('Selected bookmarks deleted!');
+                        alert(`Selected ${CurrentView} deleted!`);
                         renderPage();
                     });
                 });
@@ -258,7 +325,7 @@ function deleteSelectedBookmarks() {
                     removedCount++;
                     if (removedCount === bookmarkIds.length) {
                         SelectedItems.clear();
-                        alert('Selected bookmark folder deleted!');
+                        alert(`Selected ${CurrentView} deleted!`);
                         renderPage();
                     }
                 });
@@ -268,7 +335,7 @@ function deleteSelectedBookmarks() {
                     removedCount++;
                     if (removedCount === bookmarkIds.length) {
                         SelectedItems.clear();
-                        alert('Selected bookmarks deleted!');
+                        alert(`Selected ${CurrentView} deleted!`);
                         renderPage();
                     }
                 });

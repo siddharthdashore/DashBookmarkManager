@@ -23,14 +23,22 @@
       table-layout: fixed;
       border: none;
     }
+    .dark-mode table {
+    border-color: #333;
+    border-collapse: collapse;
+    }
 
     table tr {
     border-collapse: separate;
     border-bottom: 1px solid #ddd;
     }
 
-    .dark-mode table tr {
+    /* .dark-mode table tr {
     border: 1px solid #555;
+    } */
+    .dark-mode table td, .dark-mode table th {
+    border: 1px solid #555;
+    background-color: #333;
     }
     /* th, td {
       padding: 12px;
@@ -80,12 +88,11 @@
       z-index: 1;
     } */
     th {
-      background-color: #343a40;
+      background-color: #333;
       color: white;
-      position: sticky;
       top: 0;
     }
-    .delete-btn {
+    .delete-btn,.delete-all-btn {
       padding: 5px 10px;
       color: white;
       background-color: #d9534f;
@@ -94,7 +101,7 @@
       border-radius: 5px;
       width: 100%;
     }
-    .delete-btn:hover {
+    .delete-btn:hover, .delete-all-btn:hover {
       background-color: #c9302c;
     }
     #deleteAll {
@@ -236,7 +243,7 @@
             <p id="total-filtered-items" class="font-weight-bold" style="display: none;">Total Filtered URLs: 0</p>
         </div>
         <div style="display: flex; align-items: center; justify-content: center;">
-            <button id="deleteAll" class="delete-btn mb-4" style="display: none;">Delete All Selected</button>
+            <button id="deleteAll" class="delete-all-btn mb-4" style="display: none;">Delete All Selected</button>
           </div>
         <div id="home-buttons" style="text-align: center;">
             Find:
@@ -244,6 +251,7 @@
             <button id="duplicates-button" class="btn btn-dark">Duplicate Bookmarks</button>
             <button id="empty-folders-button" class="btn btn-dark">Empty Folders</button>
             <button id="theme-toggle" class="btn btn-secondary"><i class="fas fa-moon"></i></button>
+            <button id="settings-button" class="btn btn-secondary"><i class="fas fa-wrench"></i></button>
           </div>
         <div class="mb-3">
             <input type="text" id="searchBar" class="form-control" placeholder="Search bookmarks by title, URL, or folder"  style="display: none;">
@@ -254,7 +262,26 @@
         </nav>
         <button id="close-button" class="close-button">
             <i class="fas fa-times"></i>
-          </button>
+        </button>
+        <div id="settings-modal" style="display: none;" class="row justify-content-center">
+            <div class="col-md-4 text-center mx-auto">
+            <h2>Settings</h2>
+            <form>
+                <div class="form-group">
+                <label for="theme-select">Theme:</label>
+                <select id="theme-select" class="form-control">
+                    <option value="light">Light</option>
+                    <option value="dark">Dark</option>
+                </select>
+                </div>
+                <div class="form-group">
+                <label for="items-per-page-input">Items Per Page:</label>
+                <input type="number" id="items-per-page-input" class="form-control" min="4" value="4">
+                </div>
+                <button id="save-settings-button" class="btn btn-primary">Save</button>
+            </form>
+            </div>
+        </div>
     </div>      
     <script type="module" src="popup.js"></script>
 </body>
