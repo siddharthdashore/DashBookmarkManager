@@ -55,3 +55,5 @@ All regions
 ## Marquee promo tile (Optional)
 - 1400x560 Canvas
 - JPEG or 24-bit PNG (no alpha)
+
+Note: This extension only supports Chrome 114 and above, and may not support other browsers.

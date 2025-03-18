@@ -20,6 +20,7 @@ function renderHomePage() {
     document.getElementById('total-items').style.display = 'none';
     document.getElementById('total-filtered-items').style.display = 'none';
     document.getElementById('home-buttons').style.display = 'block';
+    document.getElementById('home-tab-buttons').style.display = 'block';
 
     document.getElementById('result').innerHTML = '';
     const searchBar = document.getElementById('searchBar');

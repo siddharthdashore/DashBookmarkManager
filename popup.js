@@ -11,6 +11,7 @@ let SelectedItems = new Set();
 let actionStrAllBookmark = "findAllBookmarks"
 let actionStrDuplicateBookmark = "findDuplicates"
 let actionStrEmptyFolder = "findEmptyFolders"
+let actionStrPendingTabsCleanup = "pendingTabsCleanup"
 
 document.addEventListener('DOMContentLoaded', () => {
     addGlobalEventListeners();
@@ -70,7 +71,36 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('save-settings-button').addEventListener('click', () => {
         saveSettings();
       });
+
+      document.getElementById('tab-cleanup-button').addEventListener('click', () => {
+        performTabsCleanup();
+      });
 });
+
+function performTabsCleanup(){
+    return new Promise((resolve, reject) => {
+        try {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            chrome.runtime.sendMessage({ action: actionStrPendingTabsCleanup }, (response) => {
+                if (chrome.runtime.lastError) {
+                    console.error("Error sending message:", chrome.runtime.lastError.message);
+                    displayError("Error finding duplicates: " + chrome.runtime.lastError.message);
+                    return;
+                }
+                if (response && response.error) {
+                    displayError(response.error);
+                    return;
+                }
+                alert("Pending tabs cleaned up to " + response.timestampFolderPath);
+                resolve();
+            });
+        } catch (error) {
+            console.error("Unexpected error:", error);
+            displayError("Unexpected error occurred.");
+            reject(error);
+        }
+    });
+}
 
 function updateTheme(theme) {
     if (theme === 'light') {
@@ -89,6 +119,7 @@ function updateTheme(theme) {
   function renderSettingsPage() {
     document.getElementById('back-button').style.display = 'block';
     document.getElementById('home-buttons').style.display = 'none';
+    document.getElementById('home-tab-buttons').style.display = 'none';
     document.getElementById('settings-modal').style.display = 'block';
 
     document.getElementById('theme-select').value = CurrentTheme;
@@ -123,6 +154,7 @@ function renderPage() {
         showLoading(); // Show loading message, making UI a bit busy
         document.getElementById('back-button').style.display = 'block';
         document.getElementById('home-buttons').style.display = 'none';
+        document.getElementById('home-tab-buttons').style.display = 'none';
         document.getElementById('searchBar').style.display = 'block';
     }
 

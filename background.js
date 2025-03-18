@@ -120,7 +120,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       }
     });
     return true; // Indicates that the response will be sent asynchronously
-  }  else if (request.action === "findAllBookmarks") {
+  } else if (request.action === "findAllBookmarks") {
     chrome.bookmarks.getTree(async (bookmarks) => {
       const bookmarkUrls = new Map();
       const fetchedBookmarks = [];
@@ -180,5 +180,110 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       }
     });
     return true; // Indicates that the response will be sent asynchronously
+  } else if (request.action === "pendingTabsCleanup") {
+    chrome.tabs.query({}, async (tabs) => {
+        chrome.bookmarks.search({ title: 'Pending Tabs' }, async (results) => {
+          let pendingTabsFolder;
+          if (results.length > 0) {
+            pendingTabsFolder = results[0];
+          } else {
+            // Create a new Pending Tabs folder if it's not found
+            pendingTabsFolder = await new Promise((resolve) => {
+              chrome.bookmarks.create({
+                title: 'Pending Tabs'
+              }, (result) => {
+                resolve(result);
+              });
+            });
+          }
+      
+          // Create a new timestamp folder inside Pending Tabs
+        const date = new Date();
+        const month = date.toLocaleString('en-GB', { month: 'short' });
+        const timestamp = `${date.getDate().toString().padStart(2, '0')}-${month}-${date.getFullYear()} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}:${date.getSeconds().toString().padStart(2, '0')}`;
+
+          const timestampFolder = await new Promise((resolve) => {
+            chrome.bookmarks.create({
+              title: timestamp,
+              url: '',
+              parentId: pendingTabsFolder.id
+            }, resolve);
+          });
+      
+          // Get the path of the timestamp folder
+          const getFolderPath = async (node) => {
+            const path = [];
+            while (node.parentId) {
+              const parentNodes = await new Promise((resolve) => {
+                chrome.bookmarks.get(node.parentId, resolve);
+              });
+              if (chrome.runtime.lastError) {
+                console.error("Error getting parent node:", chrome.runtime.lastError);
+                return;
+              }
+              path.unshift(parentNodes[0].title);
+              node = parentNodes[0];
+            }
+            return `Pending Tabs -> ${path.join(" -> ")}${node.title}`;
+          };
+      
+          const timestampFolderPath = await getFolderPath(timestampFolder);
+      
+          // Create a separate folder for pinned tabs only if there are pinned tabs
+          let pinnedFolder;
+          if (tabs.some((tab) => tab.pinned)) {
+            pinnedFolder = await new Promise((resolve) => {
+              chrome.bookmarks.create({
+                title: 'Pinned',
+                url: '',
+                parentId: timestampFolder.id
+              }, resolve);
+            });
+          }
+      
+          // Loop through all tabs and save them as bookmarks
+          tabs.forEach((tab) => {
+            if (
+                tab.url === 'about:blank' ||
+                tab.url === 'about:newtab' ||
+                tab.url === 'chrome://newtab/' ||
+                tab.url === 'chrome://newtab' ||
+                tab.url === '' ||
+                tab.url === 'https://www.google.com/' ||
+                tab.url === 'https://www.google.com'
+              ) {
+                console.info(`Skipping empty page/new tab/homepage: ${tab.title}`);
+                return;
+              }
+      
+            if (tab.pinned) {
+              // Save pinned tabs in the Pinned folder
+              chrome.bookmarks.create({
+                title: tab.title || tab.id,
+                url: tab.url || 'https://google.com',
+                parentId: pinnedFolder.id
+              });
+            } else {
+              // Save non-pinned tabs in the timestamp folder
+              chrome.bookmarks.create({
+                title: tab.title || tab.id,
+                url: tab.url || 'https://google.com',
+                parentId: timestampFolder.id
+              });
+            }
+          });
+      
+          // Close all tabs
+          tabs.forEach((tab) => {
+            chrome.tabs.remove(tab.id);
+          });
+      
+          // Open an empty new tab
+          chrome.tabs.create({ url: 'chrome://newtab' });
+      
+          sendResponse({ timestampFolderPath });
+        });
+      });
+    return true;
   }
 });
