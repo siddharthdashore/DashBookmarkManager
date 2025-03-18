@@ -92,7 +92,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
               fetchedBookmarks.push({
                 id: node.id,
                 title: node.title,
-                url: '',
+                url: 'NA',
                 folderPath: folderPath || '',
               });
             } catch (error) {

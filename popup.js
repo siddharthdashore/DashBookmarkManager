@@ -48,75 +48,80 @@ function renderPage() {
         document.getElementById('searchBar').style.display = 'block';
     }
 
-    switch (CurrentView) {
-        case CurrentViewEnum.BOOKMARKS:
-            renderBookmarksPage(actionStrAllBookmark);
-            break;
-        case CurrentViewEnum.DUPLICATE_BOOKMARKS:
-            renderBookmarksPage(actionStrDuplicateBookmark);
-            break;
-        case CurrentViewEnum.EMPTY_FOLDERS:
-            renderEmptyFoldersPage(actionStrEmptyFolder);
-            break;
-        case CurrentViewEnum.HOME:
-            CurrentPage = 1;
-            TotalPages = 1;
-            renderHomePage();
-            break;
-    }
-}
+    const actionStrings = {
+        [CurrentViewEnum.BOOKMARKS]: actionStrAllBookmark,
+        [CurrentViewEnum.DUPLICATE_BOOKMARKS]: actionStrDuplicateBookmark,
+        [CurrentViewEnum.EMPTY_FOLDERS]: actionStrEmptyFolder,
+      };
+      
+      const actionString = actionStrings[CurrentView];
 
-function renderBookmarksPage(actionString) {
+    if(CurrentView == CurrentViewEnum.HOME){
+        CurrentPage = 1;
+        TotalPages = 1;
+        renderHomePage();
+        return;
+    }
+
     const resultDiv = document.getElementById('result');
 
-    loadBookmarks(actionString).then(() => {
-        const filteredDuplicates = applySearchFilter(ItemsList); // Apply the filter to get filtered results
+    loadItems(actionString).then(() => {
+        const filteredItems = applySearchFilter(ItemsList); // Apply the filter to get filtered results
         searchInputListener();
 
-        FilteredItems = filteredDuplicates; // Update FilteredItems array
+        FilteredItems = filteredItems; // Update FilteredItems array
         TotalPages = Math.ceil(FilteredItems.length / ItemsPerPage); // Update TotalPages
         CurrentPage = Math.min(CurrentPage, TotalPages);
         updatePagination(); // Call Update Pagination after updating FilteredItems and TotalPages
 
-        if (filteredDuplicates.length === 0) {
-            resultDiv.innerHTML = "<p class='text-center'>No duplicate bookmarks found.</p>";
+        if (filteredItems.length === 0) {
+            if(CurrentView == CurrentViewEnum.EMPTY_FOLDERS){
+                resultDiv.innerHTML = "<p class='text-center'>No empty folders found.</p>";
+            }
+            else if(CurrentView == CurrentViewEnum.DUPLICATE_BOOKMARKS || CurrentView == CurrentViewEnum.BOOKMARKS){
+                resultDiv.innerHTML = "<p class='text-center'>No duplicate bookmarks found.</p>";
+            }
             document.getElementById('pagination-controls').style.display = "none"; // Hide pagination
             return;
-        }
-        else {
-            if(filteredDuplicates.length == ItemsList.length){
+        } else {
+            if(filteredItems.length == ItemsList.length){
                 document.getElementById('total-filtered-items').style.display = 'none';
             }
             else{
                 document.getElementById('total-filtered-items').style.display = 'block';
-                document.getElementById('total-filtered-items').textContent = `Total Filtered URLs: ${filteredDuplicates.length}`;
+                document.getElementById('total-filtered-items').textContent = `Total Filtered URLs: ${filteredItems.length}`;
             }
 
             document.getElementById('pagination-controls').style.display = "flex"; // Show pagination
             const start = (CurrentPage - 1) * ItemsPerPage;
             const end = start + ItemsPerPage;
-            const pageItems = filteredDuplicates.slice(start, end);
+            const pageItems = filteredItems.slice(start, end);
 
             let table = `
             <table class="table table-bordered table-striped">
             <thead class="thead-dark">
                 <tr>
                 <th><input type="checkbox" id="selectAll" style="display: none;"></th>
-                <th>Title</th>
-                <th class="break-word">URL</th>
-                <th>Folder Path</th>
-                <th>Delete</th>
+                <th style="text-align: center;">Title</th>
+                ${CurrentView === CurrentViewEnum.EMPTY_FOLDERS ? '' : '<th style="text-align: center;" class="break-word">URL</th>'}
+                <th style="text-align: center;">Folder Path</th>
+                <th style="text-align: center;">Delete</th>
                 </tr>
             </thead>
             <tbody>
             `;
+
+            if (CurrentView !== CurrentViewEnum.EMPTY_FOLDERS) {
+                table = table.replace('<table', '<table class="table-with-url"');
+              }
+
             pageItems.forEach((bookmark) => {
                 const isChecked = SelectedItems.has(bookmark.id) ? "checked" : "";
                 table += `
             <tr>
                 <td><input id="checkbox-${bookmark.id}" type="checkbox" class="select-bookmark" data-id="${bookmark.id}" ${isChecked}></td>
                 <td>${bookmark.title}</td>
-                <td class="break-word"><a href="${bookmark.url}" target="_blank">${bookmark.url}</a></td>
+                ${CurrentView === CurrentViewEnum.EMPTY_FOLDERS ? '' : `<td class="break-word"><a href="${bookmark.url}" target="_blank">${bookmark.url}</a></td>`}
                 <td>${bookmark.folderPath}</td>
                 <td><button class="delete-btn" data-id="${bookmark.id}"><i class="fas fa-trash"></i></button></td>
             </tr>
@@ -179,7 +184,7 @@ const searchInputListener = () => {
     searchInput.addEventListener('input', debouncedSearch);
   };
 
-function loadBookmarks(actionString) {
+function loadItems(actionString) {
     return new Promise((resolve, reject) => {
         try {
             window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -203,110 +208,6 @@ function loadBookmarks(actionString) {
             console.error("Unexpected error:", error);
             displayError("Unexpected error occurred.");
             reject(error);
-        }
-    });
-}
-
-function renderEmptyFoldersPage(actionString) {
-    const resultDiv = document.getElementById('result');
-
-    loadBookmarks(actionString).then(() => {
-        const filteredEmptyFolders = applySearchFilter(ItemsList); // Apply the filter to get filtered results
-        searchInputListener();
-
-        FilteredItems = filteredEmptyFolders; // Update FilteredItems array
-        TotalPages = Math.ceil(FilteredItems.length / ItemsPerPage); // Update TotalPages
-        CurrentPage = Math.min(CurrentPage, TotalPages);
-        updatePagination(); // Call Update Pagination after updating FilteredItems and TotalPages
-
-        if (filteredEmptyFolders.length === 0) {
-            resultDiv.innerHTML = "<p class='text-center'>No empty folders found.</p>";
-            document.getElementById('pagination-controls').style.display = "none"; // Hide pagination
-            return;
-        } else {
-            if(filteredEmptyFolders.length == ItemsList.length){
-                document.getElementById('total-filtered-items').style.display = 'none';
-            }
-            else{
-                document.getElementById('total-filtered-items').style.display = 'block';
-                document.getElementById('total-filtered-items').textContent = `Total Filtered Empty Folders: ${filteredEmptyFolders.length}`;
-            }
-
-            document.getElementById('pagination-controls').style.display = "flex"; // Show pagination
-
-            const start = (CurrentPage - 1) * ItemsPerPage;
-            const end = start + ItemsPerPage;
-            const pageItems = filteredEmptyFolders.slice(start, end);
-
-            let table = `
-            <table class="table table-bordered table-striped">
-            <thead class="thead-dark">
-                <tr>
-                    <th><input type="checkbox" id="selectAll" style="display: none;"></th>
-                    <th>Title</th>
-                    <th class="break-word">Folder Path</th>
-                    <th>Delete</th>
-                </tr>
-            </thead>
-            <tbody>
-            `;
-            pageItems.forEach((folder) => {
-                const isChecked = SelectedItems.has(folder.id) ? "checked" : "";
-                table += `
-            <tr>
-                <td><input id="checkbox-${folder.id}" type="checkbox" class="select-bookmark" data-id="${folder.id}" ${isChecked}></td>
-                <td>${folder.title}</td>
-                <td>${folder.folderPath}</td>
-                <td><button class="delete-btn" data-id="${folder.id}"><i class="fas fa-trash"></i></button></td>
-            </tr>
-            `;
-            });
-            table += `
-            </tbody>
-            </table>
-            `;
-            resultDiv.innerHTML = table;
-
-            document.getElementById('selectAll').addEventListener('click', (event) => {
-                const isChecked = event.target.checked;
-                document.querySelectorAll('.select-bookmark').forEach((checkbox) => {
-                    checkbox.checked = isChecked;
-                    const bookmarkId = checkbox.dataset.id;
-                    if (isChecked) {
-                        SelectedItems.add(bookmarkId);
-                    } else {
-                        SelectedItems.delete(bookmarkId);
-                    }
-                });
-                updateDeleteAllButton(); // Update the Delete All button state
-            });
-
-            document.querySelectorAll('.select-bookmark').forEach((checkbox) => {
-                checkbox.addEventListener('click', (event) => {
-                    const bookmarkId = event.target.dataset.id;
-                    if (event.target.checked) {
-                        SelectedItems.add(bookmarkId);
-                    } else {
-                        SelectedItems.delete(bookmarkId);
-                    }
-                    updateDeleteAllButton(); // Update the Delete All button state
-                });
-            });
-
-            document.querySelectorAll('.delete-btn').forEach((button) => {
-                button.addEventListener('click', (event) => {
-                    const buttonElement = event.target.closest('.delete-btn');
-                    const bookmarkId = buttonElement.dataset.id;
-                    chrome.bookmarks.remove(bookmarkId, () => {
-                        alert('Selected bookmarks deleted!');
-                        renderPage();
-                    });
-                });
-            });
-
-            document.getElementById('deleteAll').addEventListener('click', () => {
-                deleteSelectedBookmarks();
-            });
         }
     });
 }

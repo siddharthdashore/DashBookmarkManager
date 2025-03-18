@@ -51,11 +51,16 @@
         white-space: normal;
     }
     /* Fixed column widths */
-    th:nth-child(1), td:nth-child(1) { width: 40px; }  /* Checkbox */
-    th:nth-child(2), td:nth-child(2) { width: 20%; }   /* Title */
-    th:nth-child(3), td:nth-child(3) { width: 35%; }   /* URL */
-    th:nth-child(4), td:nth-child(4) { width: 35%; }   /* Folder Path */
-    th:nth-child(5), td:nth-child(5) { width: 60px; }  /* Delete button */
+    th:first-child, td:first-child { width: 40px; } /* Checkbox */
+    th:nth-child(2), td:nth-child(2) { width: 20%; } /* Title */
+
+    /* Default styles for tables without URL column */
+    th:nth-child(3), td:nth-child(3) { width: 60%; } /* Folder Path */
+    th:last-child, td:last-child { width: 75px; } /* Delete button */
+
+    /* Styles for tables with URL column */
+    .table-with-url th:nth-child(3), .table-with-url td:nth-child(3) { width: 35%; } /* URL */
+    .table-with-url th:nth-child(4), .table-with-url td:nth-child(4) { width: 35%; } /* Folder Path */
 
     /* Show full content on hover */
     /* td:hover {
