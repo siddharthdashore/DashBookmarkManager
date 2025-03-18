@@ -35,6 +35,20 @@ document.addEventListener('DOMContentLoaded', () => {
         CurrentView = CurrentViewEnum.HOME;
         renderPage();
     });
+
+    // Add an event listener to the theme toggle button
+    document.getElementById('theme-toggle').addEventListener('click', () => {
+        // Toggle the dark mode class on the body
+        document.body.classList.toggle('dark-mode');
+        // Update the button text
+        const themeToggle = document.getElementById('theme-toggle');
+        if (document.body.classList.contains('dark-mode')) {
+        themeToggle.innerHTML = '<i class="fas fa-sun"></i>';
+        } else {
+        themeToggle.innerHTML = '<i class="fas fa-moon"></i>';
+        }
+        themeToggle.blur();
+    });
 });
 
 function renderPage() {
@@ -75,12 +89,7 @@ function renderPage() {
         updatePagination(); // Call Update Pagination after updating FilteredItems and TotalPages
 
         if (filteredItems.length === 0) {
-            if(CurrentView == CurrentViewEnum.EMPTY_FOLDERS){
-                resultDiv.innerHTML = "<p class='text-center'>No empty folders found.</p>";
-            }
-            else if(CurrentView == CurrentViewEnum.DUPLICATE_BOOKMARKS || CurrentView == CurrentViewEnum.BOOKMARKS){
-                resultDiv.innerHTML = "<p class='text-center'>No duplicate bookmarks found.</p>";
-            }
+            resultDiv.innerHTML = `<p class='text-center'>No ${CurrentView} found.</p>`;
             document.getElementById('pagination-controls').style.display = "none"; // Hide pagination
             return;
         } else {
@@ -89,7 +98,7 @@ function renderPage() {
             }
             else{
                 document.getElementById('total-filtered-items').style.display = 'block';
-                document.getElementById('total-filtered-items').textContent = `Total Filtered URLs: ${filteredItems.length}`;
+                document.getElementById('total-filtered-items').textContent = `Total Filtered ${CurrentView}: ${filteredItems.length}`;
             }
 
             document.getElementById('pagination-controls').style.display = "flex"; // Show pagination
@@ -271,21 +280,79 @@ function deleteSelectedBookmarks() {
 function updatePagination() {
     const paginationControls = document.getElementById('pagination-controls');
     paginationControls.innerHTML = '';
-
-    for (let pageNumber = 1; pageNumber <= TotalPages; pageNumber++) {
+  
+    const totalPages = TotalPages;
+    const currentPage = CurrentPage;
+    const pageWidth = 5;
+  
+    if (totalPages <= pageWidth) {
+      for (let pageNumber = 1; pageNumber <= totalPages; pageNumber++) {
         const pageItem = document.createElement('li');
         pageItem.classList.add('page-item');
-
-        if (pageNumber === CurrentPage) {
-            pageItem.classList.add('active');
+  
+        if (pageNumber === currentPage) {
+          pageItem.classList.add('active');
         }
-
+  
         pageItem.innerHTML = `<a class="page-link" href="#">${pageNumber}</a>`;
         pageItem.addEventListener('click', () => {
-            CurrentPage = pageNumber;
-            renderPage();
+          CurrentPage = pageNumber;
+          renderPage();
         });
-
+  
         paginationControls.appendChild(pageItem);
+      }
+    } else {
+      const startPage = Math.max(1, currentPage - Math.floor(pageWidth / 2));
+      const endPage = Math.min(totalPages, currentPage + Math.floor(pageWidth / 2));
+  
+      if (startPage > 1) {
+        const prevPageItem = document.createElement('li');
+        prevPageItem.classList.add('page-item');
+        prevPageItem.innerHTML = '<a class="page-link" href="#">1</a>';
+        prevPageItem.addEventListener('click', () => {
+          CurrentPage = 1;
+          renderPage();
+        });
+        paginationControls.appendChild(prevPageItem);
+  
+        const ellipsisItem = document.createElement('li');
+        ellipsisItem.classList.add('page-item');
+        ellipsisItem.innerHTML = '<a class="page-link" href="#">...</a>';
+        paginationControls.appendChild(ellipsisItem);
+      }
+  
+      for (let pageNumber = startPage; pageNumber <= endPage; pageNumber++) {
+        const pageItem = document.createElement('li');
+        pageItem.classList.add('page-item');
+  
+        if (pageNumber === currentPage) {
+          pageItem.classList.add('active');
+        }
+  
+        pageItem.innerHTML = `<a class="page-link" href="#">${pageNumber}</a>`;
+        pageItem.addEventListener('click', () => {
+          CurrentPage = pageNumber;
+          renderPage();
+        });
+  
+        paginationControls.appendChild(pageItem);
+      }
+  
+      if (endPage < totalPages) {
+        const ellipsisItem = document.createElement('li');
+        ellipsisItem.classList.add('page-item');
+        ellipsisItem.innerHTML = '<a class="page-link" href="#">...</a>';
+        paginationControls.appendChild(ellipsisItem);
+  
+        const nextPageItem = document.createElement('li');
+        nextPageItem.classList.add('page-item');
+        nextPageItem.innerHTML = `<a class="page-link" href="#">${totalPages}</a>`;
+        nextPageItem.addEventListener('click', () => {
+          CurrentPage = totalPages;
+          renderPage();
+        });
+        paginationControls.appendChild(nextPageItem);
+      }
     }
-}
+  }

@@ -1,9 +1,9 @@
 const CurrentViewEnum = {
-    HOME: 1,
-    BOOKMARKS: 2,
-    DUPLICATE_BOOKMARKS: 3,
-    EMPTY_FOLDERS: 4,
-    SETTINGS: 5
+    HOME: "Home",
+    BOOKMARKS: "Bookmarks",
+    DUPLICATE_BOOKMARKS: "Duplicate Bookmarks",
+    EMPTY_FOLDERS: "Empty Folders",
+    SETTINGS: "Settings"
   }
 
 function addGlobalEventListeners() {
@@ -54,15 +54,12 @@ function debounce(callback, wait) {
 function displayCounts(duplicates, currentView) {
     const totalUrls = duplicates.length;
     document.getElementById('total-urls').style.display = 'block';
-
-    if(currentView == CurrentViewEnum.DUPLICATE_BOOKMARKS || currentView == CurrentViewEnum.BOOKMARKS) {
-        document.getElementById('total-urls').textContent = `Total Duplicate URLs: ${totalUrls}`;
+    document.getElementById('total-urls').textContent = `Total ${currentView}: ${totalUrls}`;
+    
+    if(currentView == CurrentViewEnum.DUPLICATE_BOOKMARKS) {
         const totalDuplicates = new Set(duplicates.map(({ url }) => url)).size;
         document.getElementById('total-items').style.display = 'block';
-        document.getElementById('total-items').textContent = `Total Duplicates: ${totalDuplicates}`;
-    }
-    else if(currentView == CurrentViewEnum.EMPTY_FOLDERS) {
-        document.getElementById('total-urls').textContent = `Total Empty Folders: ${totalUrls}`;
+        document.getElementById('total-items').textContent = `Total Duplicate URL: ${totalDuplicates}`;
     }
 }
 

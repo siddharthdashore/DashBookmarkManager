@@ -10,18 +10,27 @@
     body {
       font-family: Arial, sans-serif;
       margin: 0;
-      padding: 20px;
-      width: 800px;
-      min-width: 800px;
+      padding: 5px;
+      width: 780px;
+      min-width: 780px;
+      position: relative;
     }
     .container-fluid {
       padding: 0;
     }
     table {
       width: 100%;
-      margin-top: 20px;
       table-layout: fixed;
-      border-collapse: collapse;
+      border: none;
+    }
+
+    table tr {
+    border-collapse: separate;
+    border-bottom: 1px solid #ddd;
+    }
+
+    .dark-mode table tr {
+    border: 1px solid #555;
     }
     /* th, td {
       padding: 12px;
@@ -76,7 +85,7 @@
       position: sticky;
       top: 0;
     }
-    .delete-btn, .delete-all-btn {
+    .delete-btn {
       padding: 5px 10px;
       color: white;
       background-color: #d9534f;
@@ -85,8 +94,11 @@
       border-radius: 5px;
       width: 100%;
     }
-    .delete-btn:hover, .delete-all-btn:hover {
+    .delete-btn:hover {
       background-color: #c9302c;
+    }
+    #deleteAll {
+    width: auto; /* or a specific width, e.g. width: 150px; */
     }
     .pagination {
       display: flex;
@@ -100,7 +112,10 @@
       word-break: break-all;
     }
     #back-button {
-      position: absolute;
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 1;
     }
     .close-button {
         position: absolute;
@@ -115,27 +130,120 @@
     font-size: 18px;
     color: #343a40;
     }
+
+    /* Add dark mode styles */
+    .dark-mode {
+    background-color: #333;
+    color: #fff;
+    }
+
+    .dark-mode .container-fluid {
+    background-color: #333;
+    }
+
+    .dark-mode .text-center {
+    color: #fff;
+    }
+
+    .dark-mode .btn {
+    background-color: #555;
+    color: #fff;
+    border-color: #555;
+    }
+
+    .dark-mode .btn:hover {
+    background-color: #666;
+    color: #fff;
+    border-color: #666;
+    }
+
+    .dark-mode .pagination {
+    background-color: #333;
+    }
+
+    .dark-mode .page-item.disabled .page-link {
+    color: #666;
+    }
+
+    .dark-mode .close-button i {
+    color: #fff;
+    }
+
+    .dark-mode th {
+    background-color: #333;
+    color: #fff;
+    }
+
+    .dark-mode td {
+    color: #fff;
+    }
+
+    .pagination {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+    }
+
+    .pagination .page-item {
+    margin-right: 10px;
+    }
+
+    .pagination .page-link {
+    color: #337ab7;
+    background-color: #fff;
+    border: 1px solid #ddd;
+    transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+    }
+
+    .pagination .page-item.active .page-link {
+    color: #fff;
+    background-color: #337ab7;
+    border-color: #337ab7;
+    }
+
+    .pagination .page-link:hover {
+    background-color: #23527c;
+    color: #fff; /* change text color to white on hover */
+    }
+
+    .dark-mode .pagination .page-link {
+    color: #fff;
+    background-color: #333;
+    border: 1px solid #555;
+    transition: background-color 0.2s ease-in-out;
+    }
+
+    .dark-mode .pagination .page-item.active .page-link {
+    color: #fff;
+    background-color: #555;
+    border-color: #555;
+    }
+
+    .dark-mode .pagination .page-link:hover {
+    background-color: #444;
+    }
   </style>
 </head>
 <body>
     <div class="container-fluid">
-        <div class="text-center">
-            <button id="back-button" class="btn btn-secondary mb-4" style="display: none;">
-              <i class="fas fa-arrow-left"></i> Back
-            </button>
+        <div style="display: flex; align-items: center;">
+            <button id="back-button" class="btn btn-secondary mb-4" style="display: none; margin-right: 10px;"><i class="fas fa-arrow-left"></i></button>
           </div>
         <div class="text-center">
             <h1 class="my-4">Dash Bookmark Manager</h1>
             <p id="total-urls" class="font-weight-bold" style="display: none;">Total URLs: 0</p>
             <p id="total-items" class="font-weight-bold" style="display: none;">Total Duplicates: 0</p>
             <p id="total-filtered-items" class="font-weight-bold" style="display: none;">Total Filtered URLs: 0</p>
-            <button id="deleteAll" class="btn btn-danger mb-4 delete-all-btn" style="display: none;">Delete All Selected</button>
         </div>
+        <div style="display: flex; align-items: center; justify-content: center;">
+            <button id="deleteAll" class="delete-btn mb-4" style="display: none;">Delete All Selected</button>
+          </div>
         <div id="home-buttons" style="text-align: center;">
             Find:
             <button id="bookmarks-button" class="btn btn-dark">Bookmarks</button>
             <button id="duplicates-button" class="btn btn-dark">Duplicate Bookmarks</button>
             <button id="empty-folders-button" class="btn btn-dark">Empty Folders</button>
+            <button id="theme-toggle" class="btn btn-secondary"><i class="fas fa-moon"></i></button>
           </div>
         <div class="mb-3">
             <input type="text" id="searchBar" class="form-control" placeholder="Search bookmarks by title, URL, or folder"  style="display: none;">
