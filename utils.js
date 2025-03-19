@@ -6,19 +6,19 @@ const CurrentViewEnum = {
     DUPLICATE_BOOKMARKS: "Duplicate Bookmarks",
     EMPTY_FOLDERS: "Empty Folders",
     SETTINGS: "Settings"
-  }
+}
 
-  const LogLevel = {
+const LogLevel = {
     LOG: "log",
     INFO: "info",
     WARNING: "warning",
     ERROR: "error",
     DEBUG: "debug"
-  }
+}
 
 function addGlobalEventListeners() {
-  const closeButton = document.getElementById('close-button');
-  closeButton.addEventListener('click', () => window.close());
+    const closeButton = document.getElementById('close-button');
+    closeButton.addEventListener('click', () => window.close());
 }
 
 function renderHomePage() {
@@ -36,7 +36,7 @@ function renderHomePage() {
     const searchBar = document.getElementById('searchBar');
     searchBar.style.display = 'none';
     searchBar.value = '';
-  }
+}
 
 function showLoading() {
     document.getElementById('pagination-controls').style.display = "none";
@@ -44,7 +44,7 @@ function showLoading() {
     const resultContainer = document.getElementById('result');
     resultContainer.innerHTML = `<p class="text-center text-primary">Loading...</p>`;
 }
-    
+
 function hideLoading() {
     const resultContainer = document.getElementById('result');
     resultContainer.innerHTML = ''; // Clear the loading message
@@ -57,7 +57,7 @@ function displayError(message) {
 
 function debounce(callback, wait) {
     let timeout;
-    return function(...args) {
+    return function (...args) {
         clearTimeout(timeout);
         timeout = setTimeout(() => callback.apply(this, args), wait);
     };
@@ -67,8 +67,8 @@ function displayCounts(duplicates, currentView) {
     const totalUrls = duplicates.length;
     document.getElementById('total-urls').style.display = 'block';
     document.getElementById('total-urls').textContent = `Total ${currentView}: ${totalUrls}`;
-    
-    if(currentView == CurrentViewEnum.DUPLICATE_BOOKMARKS) {
+
+    if (currentView == CurrentViewEnum.DUPLICATE_BOOKMARKS) {
         const totalDuplicates = new Set(duplicates.map(({ url }) => url)).size;
         document.getElementById('total-items').style.display = 'block';
         document.getElementById('total-items').textContent = `Total Duplicate URL: ${totalDuplicates}`;
@@ -79,7 +79,7 @@ function applySearchFilter(items) {
     const searchBar = document.getElementById('searchBar'); // Assuming there is a search bar
     const filterText = searchBar?.value?.toLowerCase() ?? "";
 
-    if(filterText == "") return items;
+    if (filterText == "") return items;
 
     return items.filter((item) =>
         (item.title?.toLowerCase() || "").includes(filterText) ||
@@ -100,10 +100,10 @@ function dumpLogs(logLevel, message) {
             console.error(message);
             break;
         case LogLevel.DEBUG:
-            if (enableDebugLogs) {console.debug(message)};
+            if (enableDebugLogs) { console.debug(message) };
             break;
         case LogLevel.LOG:
-            if (enableDebugLogs) {console.log(message)};
+            if (enableDebugLogs) { console.log(message) };
             break;
     }
 }
@@ -113,4 +113,4 @@ function showAlert(logLevel, message) {
     alert(message);
 }
 
-export { addGlobalEventListeners, renderHomePage, showLoading, hideLoading, displayError, debounce, displayCounts, applySearchFilter, dumpLogs, showAlert, CurrentViewEnum, LogLevel};
+export { addGlobalEventListeners, renderHomePage, showLoading, hideLoading, displayError, debounce, displayCounts, applySearchFilter, dumpLogs, showAlert, CurrentViewEnum, LogLevel };

@@ -1,46 +1,52 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dash Bookmark Manager</title>
-  <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 0;
-      padding: 5px;
-      width: 780px;
-      min-width: 780px;
-      position: relative;
-    }
-    .container-fluid {
-      padding: 0;
-    }
-    table {
-      width: 100%;
-      table-layout: fixed;
-      border: none;
-    }
-    .dark-mode table {
-    border-color: #333;
-    border-collapse: collapse;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dash Bookmark Manager</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 5px;
+            width: 780px;
+            min-width: 780px;
+            position: relative;
+        }
 
-    table tr {
-    border-collapse: separate;
-    border-bottom: 1px solid #ddd;
-    }
+        .container-fluid {
+            padding: 0;
+        }
 
-    /* .dark-mode table tr {
+        table {
+            width: 100%;
+            table-layout: fixed;
+            border: none;
+        }
+
+        .dark-mode table {
+            border-color: #333;
+            border-collapse: collapse;
+        }
+
+        table tr {
+            border-collapse: separate;
+            border-bottom: 1px solid #ddd;
+        }
+
+        /* .dark-mode table tr {
     border: 1px solid #555;
     } */
-    .dark-mode table td, .dark-mode table th {
-    border: 1px solid #555;
-    background-color: #333;
-    }
-    /* th, td {
+        .dark-mode table td,
+        .dark-mode table th {
+            border: 1px solid #555;
+            background-color: #333;
+        }
+
+        /* th, td {
       padding: 12px;
       text-align: left;
       vertical-align: middle;
@@ -54,188 +60,231 @@
       text-overflow: ellipsis;
       white-space: nowrap;
     } */
-    th, td {
-    padding: 12px;
-    text-align: left;
-    vertical-align: middle;
-    word-wrap: break-word;
-    white-space: normal;
-    }
+        th,
+        td {
+            padding: 12px;
+            text-align: left;
+            vertical-align: middle;
+            word-wrap: break-word;
+            white-space: normal;
+        }
 
-    td a {
-        display: block;
-        word-wrap: break-word;
-        white-space: normal;
-    }
-    /* Fixed column widths */
-    th:first-child, td:first-child { width: 40px; } /* Checkbox */
-    th:nth-child(2), td:nth-child(2) { width: 20%; } /* Title */
+        td a {
+            display: block;
+            word-wrap: break-word;
+            white-space: normal;
+        }
 
-    /* Default styles for tables without URL column */
-    th:nth-child(3), td:nth-child(3) { width: 60%; } /* Folder Path */
-    th:last-child, td:last-child { width: 75px; } /* Delete button */
+        /* Fixed column widths */
+        th:first-child,
+        td:first-child {
+            width: 40px;
+        }
 
-    /* Styles for tables with URL column */
-    .table-with-url th:nth-child(3), .table-with-url td:nth-child(3) { width: 35%; } /* URL */
-    .table-with-url th:nth-child(4), .table-with-url td:nth-child(4) { width: 35%; } /* Folder Path */
+        /* Checkbox */
+        th:nth-child(2),
+        td:nth-child(2) {
+            width: 20%;
+        }
 
-    /* Show full content on hover */
-    /* td:hover {
+        /* Title */
+
+        /* Default styles for tables without URL column */
+        th:nth-child(3),
+        td:nth-child(3) {
+            width: 60%;
+        }
+
+        /* Folder Path */
+        th:last-child,
+        td:last-child {
+            width: 75px;
+        }
+
+        /* Delete button */
+
+        /* Styles for tables with URL column */
+        .table-with-url th:nth-child(3),
+        .table-with-url td:nth-child(3) {
+            width: 35%;
+        }
+
+        /* URL */
+        .table-with-url th:nth-child(4),
+        .table-with-url td:nth-child(4) {
+            width: 35%;
+        }
+
+        /* Folder Path */
+
+        /* Show full content on hover */
+        /* td:hover {
       white-space: normal;
       overflow: visible;
       position: relative;
       background-color: #f8f9fa;
       z-index: 1;
     } */
-    th {
-      background-color: #333;
-      color: white;
-      top: 0;
-    }
-    .delete-btn,.delete-all-btn {
-      padding: 5px 10px;
-      color: white;
-      background-color: #d9534f;
-      border: none;
-      cursor: pointer;
-      border-radius: 5px;
-      width: 100%;
-    }
-    .delete-btn:hover, .delete-all-btn:hover {
-      background-color: #c9302c;
-    }
-    #deleteAll {
-    width: auto; /* or a specific width, e.g. width: 150px; */
-    }
-    .pagination {
-      display: flex;
-      justify-content: center;
-      margin-top: 20px;
-    }
-    .page-item.disabled .page-link {
-      cursor: not-allowed;
-    }
-    .break-word {
-      word-break: break-all;
-    }
-    #back-button {
-    position: absolute;
-    top: 10px;
-    left: 10px;
-    z-index: 1;
-    }
-    .close-button {
-        position: absolute;
-        top: 10px;
-        right: 10px;
-        background-color: transparent;
-        border: none;
-        cursor: pointer;
-    }
+        th {
+            background-color: #333;
+            color: white;
+            top: 0;
+        }
 
-    .close-button i {
-    font-size: 18px;
-    color: #343a40;
-    }
+        .delete-btn,
+        .delete-all-btn {
+            padding: 5px 10px;
+            color: white;
+            background-color: #d9534f;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+            width: 100%;
+        }
 
-    /* Add dark mode styles */
-    .dark-mode {
-    background-color: #333;
-    color: #fff;
-    }
+        .delete-btn:hover,
+        .delete-all-btn:hover {
+            background-color: #c9302c;
+        }
 
-    .dark-mode .container-fluid {
-    background-color: #333;
-    }
+        #deleteAll {
+            width: auto; /* or a specific width, e.g. width: 150px; */
+        }
 
-    .dark-mode .text-center {
-    color: #fff;
-    }
+        .pagination {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
 
-    .dark-mode .btn {
-    background-color: #555;
-    color: #fff;
-    border-color: #555;
-    }
+        .page-item.disabled .page-link {
+            cursor: not-allowed;
+        }
 
-    .dark-mode .btn:hover {
-    background-color: #666;
-    color: #fff;
-    border-color: #666;
-    }
+        .break-word {
+            word-break: break-all;
+        }
 
-    .dark-mode .pagination {
-    background-color: #333;
-    }
+        #back-button {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 1;
+        }
 
-    .dark-mode .page-item.disabled .page-link {
-    color: #666;
-    }
+        .close-button {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: transparent;
+            border: none;
+            cursor: pointer;
+        }
 
-    .dark-mode .close-button i {
-    color: #fff;
-    }
+        .close-button i {
+            font-size: 18px;
+            color: #343a40;
+        }
 
-    .dark-mode th {
-    background-color: #333;
-    color: #fff;
-    }
+        /* Add dark mode styles */
+        .dark-mode {
+            background-color: #333;
+            color: #fff;
+        }
 
-    .dark-mode td {
-    color: #fff;
-    }
+        .dark-mode .container-fluid {
+            background-color: #333;
+        }
 
-    .pagination {
-    display: flex;
-    justify-content: center;
-    margin-top: 20px;
-    }
+        .dark-mode .text-center {
+            color: #fff;
+        }
 
-    .pagination .page-item {
-    margin-right: 10px;
-    }
+        .dark-mode .btn {
+            background-color: #555;
+            color: #fff;
+            border-color: #555;
+        }
 
-    .pagination .page-link {
-    color: #337ab7;
-    background-color: #fff;
-    border: 1px solid #ddd;
-    transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
-    }
+        .dark-mode .btn:hover {
+            background-color: #666;
+            color: #fff;
+            border-color: #666;
+        }
 
-    .pagination .page-item.active .page-link {
-    color: #fff;
-    background-color: #337ab7;
-    border-color: #337ab7;
-    }
+        .dark-mode .pagination {
+            background-color: #333;
+        }
 
-    .pagination .page-link:hover {
-    background-color: #23527c;
-    color: #fff; /* change text color to white on hover */
-    }
+        .dark-mode .page-item.disabled .page-link {
+            color: #666;
+        }
 
-    .dark-mode .pagination .page-link {
-    color: #fff;
-    background-color: #333;
-    border: 1px solid #555;
-    transition: background-color 0.2s ease-in-out;
-    }
+        .dark-mode .close-button i {
+            color: #fff;
+        }
 
-    .dark-mode .pagination .page-item.active .page-link {
-    color: #fff;
-    background-color: #555;
-    border-color: #555;
-    }
+        .dark-mode th {
+            background-color: #333;
+            color: #fff;
+        }
 
-    .dark-mode .pagination .page-link:hover {
-    background-color: #444;
-    }
-  </style>
+        .dark-mode td {
+            color: #fff;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .pagination .page-item {
+            margin-right: 10px;
+        }
+
+        .pagination .page-link {
+            color: #337ab7;
+            background-color: #fff;
+            border: 1px solid #ddd;
+            transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+        }
+
+        .pagination .page-item.active .page-link {
+            color: #fff;
+            background-color: #337ab7;
+            border-color: #337ab7;
+        }
+
+        .pagination .page-link:hover {
+            background-color: #23527c;
+            color: #fff; /* change text color to white on hover */
+        }
+
+        .dark-mode .pagination .page-link {
+            color: #fff;
+            background-color: #333;
+            border: 1px solid #555;
+            transition: background-color 0.2s ease-in-out;
+        }
+
+        .dark-mode .pagination .page-item.active .page-link {
+            color: #fff;
+            background-color: #555;
+            border-color: #555;
+        }
+
+        .dark-mode .pagination .page-link:hover {
+            background-color: #444;
+        }
+    </style>
 </head>
+
 <body>
     <div class="container-fluid">
         <div style="display: flex; align-items: center;">
             <button id="back-button" class="btn btn-secondary mb-4" style="display: none; margin-right: 10px;"><i class="fas fa-arrow-left"></i></button>
-          </div>
+        </div>
         <div class="text-center">
             <h1 class="my-4">Dash Bookmark Manager</h1>
             <p id="total-urls" class="font-weight-bold" style="display: none;">Total URLs: 0</p>
@@ -244,20 +293,20 @@
         </div>
         <div style="display: flex; align-items: center; justify-content: center;">
             <button id="deleteAll" class="delete-all-btn mb-4" style="display: none;">Delete All Selected</button>
-          </div>
+        </div>
         <div id="home-buttons" style="text-align: center;">
             Find:
             <button id="bookmarks-button" class="btn btn-dark">Bookmarks</button>
             <button id="duplicates-button" class="btn btn-dark">Duplicate Bookmarks</button>
             <button id="empty-folders-button" class="btn btn-dark">Empty Folders</button>
-          </div>
-          <div id="home-tab-buttons" style="text-align: center; margin-top: 20px;">
-              <button id="tab-cleanup-button" class="btn btn-secondary">Tab Cleanup</button>
-              <button id="theme-toggle" class="btn btn-secondary"><i class="fas fa-moon"></i></button>
-              <button id="settings-button" class="btn btn-secondary"><i class="fas fa-wrench"></i></button>
-            </div>
+        </div>
+        <div id="home-tab-buttons" style="text-align: center; margin-top: 20px;">
+            <button id="tab-cleanup-button" class="btn btn-secondary">Tab Cleanup</button>
+            <button id="theme-toggle" class="btn btn-secondary"><i class="fas fa-moon"></i></button>
+            <button id="settings-button" class="btn btn-secondary"><i class="fas fa-wrench"></i></button>
+        </div>
         <div class="mb-3">
-            <input type="text" id="searchBar" class="form-control" placeholder="Search bookmarks by title, URL, or folder"  style="display: none;">
+            <input type="text" id="searchBar" class="form-control" placeholder="Search bookmarks by title, URL, or folder" style="display: none;">
         </div>
         <div id="result" class="table-container table-responsive"></div>
         <nav aria-label="Page navigation">
@@ -268,24 +317,25 @@
         </button>
         <div id="settings-modal" style="display: none;" class="row justify-content-center">
             <div class="col-md-4 text-center mx-auto">
-            <h2>Settings</h2>
-            <form>
-                <div class="form-group">
-                <label for="theme-select">Theme:</label>
-                <select id="theme-select" class="form-control">
-                    <option value="light">Light</option>
-                    <option value="dark">Dark</option>
-                </select>
-                </div>
-                <div class="form-group">
-                <label for="items-per-page-input">Items Per Page:</label>
-                <input type="number" id="items-per-page-input" class="form-control" min="4" value="4">
-                </div>
-                <button id="save-settings-button" class="btn btn-primary">Save</button>
-            </form>
+                <h2>Settings</h2>
+                <form>
+                    <div class="form-group">
+                        <label for="theme-select">Theme:</label>
+                        <select id="theme-select" class="form-control">
+                            <option value="light">Light</option>
+                            <option value="dark">Dark</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="items-per-page-input">Items Per Page:</label>
+                        <input type="number" id="items-per-page-input" class="form-control" min="4" value="4">
+                    </div>
+                    <button id="save-settings-button" class="btn btn-primary">Save</button>
+                </form>
             </div>
         </div>
-    </div>      
+    </div>
     <script type="module" src="popup.js"></script>
 </body>
+
 </html>

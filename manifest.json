@@ -4,18 +4,20 @@
     "name": "Dash Bookmark Manager",
     "version": "0.5.0",
     "description": "Search and delete bookmarks, duplicates, and empty folders (individually or in bulk) for simple, efficient bookmarks management.",
-    "permissions": ["bookmarks", "tabs"],
+    "permissions": [
+        "bookmarks",
+        "tabs"
+    ],
     "background": {
-      "service_worker": "background.js"
+        "service_worker": "background.js"
     },
     "action": {
-      "default_popup": "popup.html"
+        "default_popup": "popup.html"
     },
     "icons": {
         "16": "dash-icon16x16.png",
         "32": "dash-icon32x32.png",
         "48": "dash-icon48x48.png",
         "128": "dash-icon128x128.png"
-    }    
-  }
-  
+    }
+}
