@@ -59,16 +59,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('theme-toggle').addEventListener('click', () => {
         CurrentView = CurrentViewEnum.SETTINGS;
-        // Toggle the dark mode class on the body
-        document.body.classList.toggle('dark-mode');
-        // Update the button text
-        const themeToggle = document.getElementById('theme-toggle');
         if (document.body.classList.contains('dark-mode')) {
-            themeToggle.innerHTML = '<i class="fas fa-sun"></i>';
+            CurrentTheme = "light";
+
         } else {
-            themeToggle.innerHTML = '<i class="fas fa-moon"></i>';
+            CurrentTheme = "dark";
         }
-        themeToggle.blur();
+        document.getElementById('theme-select').value = CurrentTheme;
+        CurrentView = CurrentViewEnum.HOME;
+        saveSettings();
     });
 
     document.getElementById('save-settings-button').addEventListener('click', () => {
@@ -123,11 +122,16 @@ function performTabsCleanup() {
 function updateTheme(theme) {
     const startTime = Date.now();
     dumpLogs(LogLevel.LOG, `updateTheme() started at ${startTime}`);
+
+    const themeToggle = document.getElementById('theme-toggle');
     if (theme === 'light') {
         document.body.classList.remove('dark-mode');
+        themeToggle.innerHTML = '<i class="fas fa-moon"></i>';
     } else if (theme === 'dark') {
         document.body.classList.add('dark-mode');
+        themeToggle.innerHTML = '<i class="fas fa-sun"></i>';
     }
+    themeToggle.blur();
     CurrentTheme = theme;
     dumpLogs(LogLevel.LOG, `updateTheme() call completed in ${(Date.now() - startTime) / 1000}ms`);
 }
