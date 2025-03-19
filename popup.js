@@ -1,4 +1,17 @@
-import { showLoading, hideLoading, renderHomePage, displayError, addGlobalEventListeners, debounce, displayCounts, applySearchFilter, dumpLogs, showAlert, CurrentViewEnum, LogLevel } from './utils.js';
+import {
+    showLoading,
+    hideLoading,
+    renderHomePage,
+    displayError,
+    addGlobalEventListeners,
+    debounce,
+    displayCounts,
+    applySearchFilter,
+    dumpLogs,
+    showAlert,
+    CurrentViewEnum,
+    LogLevel
+} from './utils.js';
 
 let ItemsPerPage = 4;
 let CurrentView = CurrentViewEnum.HOME; // Add a new variable to keep track of the current view
@@ -80,43 +93,49 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function performTabsCleanup() {
-    if (isTabsCleanupInProgress) {
-        dumpLogs(LogLevel.WARNING, "Tabs cleanup is already in progress. Skipping...");
-        return Promise.resolve(); // Return a resolved promise to avoid breaking the chain
-    }
-
     const startTime = Date.now();
     dumpLogs(LogLevel.LOG, `performTabsCleanup() started at ${startTime}`);
-    isTabsCleanupInProgress = true;
 
-    return new Promise((resolve, reject) => {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-        chrome.runtime.sendMessage({ action: actionStrPendingTabsCleanup })
-            .then((response) => {
-                if (chrome.runtime.lastError) {
-                    dumpLogs(LogLevel.ERROR, "Error sending message:", chrome.runtime.lastError.message);
-                    displayError("Error finding duplicates: " + chrome.runtime.lastError.message);
-                    reject(chrome.runtime.lastError);
-                    return;
-                }
-                if (response && response.error) {
-                    displayError(response.error);
-                    reject(response.error);
-                    return;
-                }
-                showAlert(LogLevel.INFO, "Pending tabs saved to path: " + response.timestampFolderPath);
-                resolve();
-            })
-            .catch((error) => {
-                dumpLogs(LogLevel.ERROR, "Unexpected error:", error);
-                displayError("Unexpected error occurred.");
-                reject(error);
-            })
-            .finally(() => {
-                isTabsCleanupInProgress = false;
-                dumpLogs(LogLevel.LOG, `performTabsCleanup() call completed in ${(Date.now() - startTime) / 1000}ms`);
-            });
-    });
+    try {
+        if (isTabsCleanupInProgress) {
+            dumpLogs(LogLevel.WARNING, "Tabs cleanup is already in progress. Skipping...");
+            dumpLogs(LogLevel.LOG, `performTabsCleanup() started at ${startTime}`);
+            return Promise.resolve(); // Return a resolved promise to avoid breaking the chain
+        }
+
+        isTabsCleanupInProgress = true;
+
+        return new Promise((resolve, reject) => {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            chrome.runtime.sendMessage({ action: actionStrPendingTabsCleanup })
+                .then((response) => {
+                    if (chrome.runtime.lastError) {
+                        dumpLogs(LogLevel.ERROR, "Error sending message:", chrome.runtime.lastError.message);
+                        displayError("Error finding duplicates: " + chrome.runtime.lastError.message);
+                        reject(chrome.runtime.lastError);
+                        return;
+                    }
+                    if (response && response.error) {
+                        displayError(response.error);
+                        reject(response.error);
+                        return;
+                    }
+                    showAlert(LogLevel.INFO, "Pending tabs saved to path: " + response.timestampFolderPath);
+                    resolve();
+                })
+                .catch((error) => {
+                    dumpLogs(LogLevel.ERROR, "Unexpected error:", error);
+                    displayError("Unexpected error occurred.");
+                    reject(error);
+                })
+                .finally(() => {
+                    isTabsCleanupInProgress = false;
+                    dumpLogs(LogLevel.LOG, `performTabsCleanup() call completed in ${(Date.now() - startTime) / 1000}ms`);
+                });
+        });
+    } finally {
+        dumpLogs(LogLevel.LOG, `applySearchFilter() call completed in ${(Date.now() - startTime) / 1000}ms`);
+    }
 }
 
 function updateTheme(theme) {
@@ -395,9 +414,7 @@ function loadItems(actionString) {
 function filterBySearchTerm(searchTerm) {
     const startTime = Date.now();
     dumpLogs(LogLevel.LOG, `filterBySearchTerm() started at ${startTime}`);
-    dumpLogs(LogLevel.ERROR, 'searchTerm:', searchTerm);
-    const searchTermLower = searchTerm.replace(/"/g, '').toLowerCase();
-    dumpLogs(LogLevel.ERROR, 'searchTermLower:', searchTermLower);
+    const searchTermLower = searchTerm.replace(/["'`]/g, "").toLowerCase();
 
     FilteredItems = ItemsList.filter(
         ({ title, url, folderPath }) =>
@@ -423,40 +440,45 @@ let previousSelectedBookmarks = new Set();
 function deleteSelectedBookmarks() {
     const startTime = Date.now();
     dumpLogs(LogLevel.LOG, `deleteSelectedBookmarks() started at ${startTime}`);
-    if (SelectedItems.size === previousSelectedBookmarks.size && [...SelectedItems].every((value, index) => value === [...previousSelectedBookmarks][index])) {
-        return;
-    }
-    previousSelectedBookmarks = new Set(SelectedItems);
 
-    const bookmarkIds = Array.from(SelectedItems);
-    let removedCount = 0;
+    try {
+        if (SelectedItems.size === previousSelectedBookmarks.size && [...SelectedItems].every((value, index) => value === [...previousSelectedBookmarks][index])) {
+            return;
+        }
+        previousSelectedBookmarks = new Set(SelectedItems);
 
-    bookmarkIds.forEach((id) => {
-        chrome.bookmarks.get(id, (bookmark) => {
-            if (bookmark[0].children) {
-                // If the bookmark is a folder, remove it with removeTree
-                chrome.bookmarks.removeTree(id, () => {
-                    removedCount++;
-                    if (removedCount === bookmarkIds.length) {
-                        SelectedItems.clear();
-                        showAlert(LogLevel.INFO, `Selected ${CurrentView} deleted!`);
-                        renderPage();
-                    }
-                });
-            } else {
-                // If the bookmark is not a folder, remove it with remove
-                chrome.bookmarks.remove(id, () => {
-                    removedCount++;
-                    if (removedCount === bookmarkIds.length) {
-                        SelectedItems.clear();
-                        showAlert(LogLevel.INFO, `Selected ${CurrentView} deleted!`);
-                        renderPage();
-                    }
-                });
-            }
+        const bookmarkIds = Array.from(SelectedItems);
+        let removedCount = 0;
+
+        bookmarkIds.forEach((id) => {
+            chrome.bookmarks.get(id, (bookmark) => {
+                if (bookmark[0].children) {
+                    // If the bookmark is a folder, remove it with removeTree
+                    chrome.bookmarks.removeTree(id, () => {
+                        removedCount++;
+                        if (removedCount === bookmarkIds.length) {
+                            SelectedItems.clear();
+                            showAlert(LogLevel.INFO, `Selected ${CurrentView} deleted!`);
+                            renderPage();
+                        }
+                    });
+                } else {
+                    // If the bookmark is not a folder, remove it with remove
+                    chrome.bookmarks.remove(id, () => {
+                        removedCount++;
+                        if (removedCount === bookmarkIds.length) {
+                            SelectedItems.clear();
+                            showAlert(LogLevel.INFO, `Selected ${CurrentView} deleted!`);
+                            renderPage();
+                        }
+                    });
+                }
+            });
         });
-    });
-    dumpLogs(LogLevel.LOG, `deleteSelectedBookmarks() call completed in ${(Date.now() - startTime) / 1000}ms`);
+    }
+    finally {
+        dumpLogs(LogLevel.LOG, `deleteSelectedBookmarks() call completed in ${(Date.now() - startTime) / 1000}ms`);
+    }
 }
 
 function updatePagination() {

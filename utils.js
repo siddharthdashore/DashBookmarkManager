@@ -17,11 +17,19 @@ const LogLevel = {
 }
 
 function addGlobalEventListeners() {
+    const startTime = Date.now();
+    dumpLogs(LogLevel.LOG, `addGlobalEventListeners() started at ${startTime}`);
+
     const closeButton = document.getElementById('close-button');
     closeButton.addEventListener('click', () => window.close());
+
+    dumpLogs(LogLevel.LOG, `addGlobalEventListeners() call completed in ${(Date.now() - startTime) / 1000}ms`);
 }
 
 function renderHomePage() {
+    const startTime = Date.now();
+    dumpLogs(LogLevel.LOG, `renderHomePage() started at ${startTime}`);
+
     document.getElementById('back-button').style.display = 'none';
     document.getElementById('pagination-controls').style.display = "none";
     document.getElementById('settings-modal').style.display = 'none';
@@ -36,23 +44,39 @@ function renderHomePage() {
     const searchBar = document.getElementById('searchBar');
     searchBar.style.display = 'none';
     searchBar.value = '';
+
+    dumpLogs(LogLevel.LOG, `renderHomePage() call completed in ${(Date.now() - startTime) / 1000}ms`);
 }
 
 function showLoading() {
-    document.getElementById('pagination-controls').style.display = "none";
+    const startTime = Date.now();
+    dumpLogs(LogLevel.LOG, `showLoading() started at ${startTime}`);
 
+    document.getElementById('pagination-controls').style.display = "none";
     const resultContainer = document.getElementById('result');
     resultContainer.innerHTML = `<p class="text-center text-primary">Loading...</p>`;
+
+    dumpLogs(LogLevel.LOG, `showLoading() call completed in ${(Date.now() - startTime) / 1000}ms`);
 }
 
 function hideLoading() {
+    const startTime = Date.now();
+    dumpLogs(LogLevel.LOG, `hideLoading() started at ${startTime}`);
+
     const resultContainer = document.getElementById('result');
     resultContainer.innerHTML = ''; // Clear the loading message
+
+    dumpLogs(LogLevel.LOG, `hideLoading() call completed in ${(Date.now() - startTime) / 1000}ms`);
 }
 
 function displayError(message) {
+    const startTime = Date.now();
+    dumpLogs(LogLevel.LOG, `displayError() started at ${startTime}`);
+
     const container = document.getElementById('result');
     container.innerHTML = `<p class="text-center text-danger">Error: ${message}</p>`;
+
+    dumpLogs(LogLevel.LOG, `displayError() call completed in ${(Date.now() - startTime) / 1000}ms`);
 }
 
 function debounce(callback, wait) {
@@ -64,6 +88,9 @@ function debounce(callback, wait) {
 }
 
 function displayCounts(duplicates, currentView) {
+    const startTime = Date.now();
+    dumpLogs(LogLevel.LOG, `displayCounts() started at ${startTime}`);
+
     const totalUrls = duplicates.length;
     document.getElementById('total-urls').style.display = 'block';
     document.getElementById('total-urls').textContent = `Total ${currentView}: ${totalUrls}`;
@@ -73,19 +100,31 @@ function displayCounts(duplicates, currentView) {
         document.getElementById('total-items').style.display = 'block';
         document.getElementById('total-items').textContent = `Total Duplicate URL: ${totalDuplicates}`;
     }
+    dumpLogs(LogLevel.LOG, `displayCounts() call completed in ${(Date.now() - startTime) / 1000}ms`);
 }
 
 function applySearchFilter(items) {
-    const searchBar = document.getElementById('searchBar'); // Assuming there is a search bar
-    const filterText = searchBar?.value?.toLowerCase() ?? "";
+    const startTime = Date.now();
+    dumpLogs(LogLevel.LOG, `applySearchFilter() started at ${startTime}`);
+    let filteredItems = [];
 
-    if (filterText == "") return items;
+    try {
+        const searchBar = document.getElementById('searchBar'); // Assuming there is a search bar
+        const filterText = searchBar?.value?.replace(/["'`]/g, "").toLowerCase() ?? "";
 
-    return items.filter((item) =>
-        (item.title?.toLowerCase() || "").includes(filterText) ||
-        (item.url?.toLowerCase() || "").includes(filterText) ||
-        (item.folderPath?.toLowerCase() || "").includes(filterText)
-    );
+        if (filterText == "") {
+            return items;
+        }
+
+        filteredItems = items.filter((item) =>
+            (item.title?.toLowerCase() || "").includes(filterText) ||
+            (item.url?.toLowerCase() || "").includes(filterText) ||
+            (item.folderPath?.toLowerCase() || "").includes(filterText)
+        );
+    } finally {
+        dumpLogs(LogLevel.LOG, `applySearchFilter() call completed in ${(Date.now() - startTime) / 1000}ms`);
+    }
+    return filteredItems;
 }
 
 function dumpLogs(logLevel, message) {
