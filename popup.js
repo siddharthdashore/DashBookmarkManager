@@ -1,4 +1,4 @@
-import { showLoading, hideLoading, renderHomePage, displayError, addGlobalEventListeners, debounce, displayCounts, applySearchFilter, CurrentViewEnum } from './utils.js';
+import { showLoading, hideLoading, renderHomePage, displayError, addGlobalEventListeners, debounce, displayCounts, applySearchFilter, dumpLogs, showAlert, CurrentViewEnum, LogLevel } from './utils.js';
 
 let ItemsPerPage = 4;
 let CurrentView = CurrentViewEnum.HOME; // Add a new variable to keep track of the current view
@@ -12,6 +12,9 @@ let actionStrAllBookmark = "findAllBookmarks"
 let actionStrDuplicateBookmark = "findDuplicates"
 let actionStrEmptyFolder = "findEmptyFolders"
 let actionStrPendingTabsCleanup = "pendingTabsCleanup"
+let isTabsCleanupInProgress = false;
+let searchInputListenerAdded = false;
+let debouncedSearch = null;
 
 document.addEventListener('DOMContentLoaded', () => {
     addGlobalEventListeners();
@@ -77,46 +80,69 @@ document.addEventListener('DOMContentLoaded', () => {
       });
 });
 
-function performTabsCleanup(){
+function performTabsCleanup() {
+    if (isTabsCleanupInProgress) {
+        dumpLogs(LogLevel.WARNING, "Tabs cleanup is already in progress. Skipping...");
+        return Promise.resolve(); // Return a resolved promise to avoid breaking the chain
+    }
+
+    const startTime = Date.now();
+    dumpLogs(LogLevel.LOG, `performTabsCleanup() started at ${startTime}`);
+    isTabsCleanupInProgress = true;
+
     return new Promise((resolve, reject) => {
-        try {
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-            chrome.runtime.sendMessage({ action: actionStrPendingTabsCleanup }, (response) => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        chrome.runtime.sendMessage({ action: actionStrPendingTabsCleanup })
+            .then((response) => {
                 if (chrome.runtime.lastError) {
-                    console.error("Error sending message:", chrome.runtime.lastError.message);
+                    dumpLogs(LogLevel.ERROR, "Error sending message:", chrome.runtime.lastError.message);
                     displayError("Error finding duplicates: " + chrome.runtime.lastError.message);
+                    reject(chrome.runtime.lastError);
                     return;
                 }
                 if (response && response.error) {
                     displayError(response.error);
+                    reject(response.error);
                     return;
                 }
-                alert("Pending tabs cleaned up to " + response.timestampFolderPath);
+                showAlert( LogLevel.INFO, "Pending tabs saved to path: " + response.timestampFolderPath);
                 resolve();
+            })
+            .catch((error) => {
+                dumpLogs(LogLevel.ERROR, "Unexpected error:", error);
+                displayError("Unexpected error occurred.");
+                reject(error);
+            })
+            .finally(() => {
+                isTabsCleanupInProgress = false;
+                dumpLogs(LogLevel.LOG, `performTabsCleanup() call completed in ${(Date.now() - startTime)/1000}ms`);
             });
-        } catch (error) {
-            console.error("Unexpected error:", error);
-            displayError("Unexpected error occurred.");
-            reject(error);
-        }
     });
 }
 
 function updateTheme(theme) {
+    const startTime = Date.now();
+    dumpLogs(LogLevel.LOG, `updateTheme() started at ${startTime}`);
     if (theme === 'light') {
       document.body.classList.remove('dark-mode');
     } else if (theme === 'dark') {
       document.body.classList.add('dark-mode');
     }
     CurrentTheme = theme;
+    dumpLogs(LogLevel.LOG, `updateTheme() call completed in ${(Date.now() - startTime)/1000}ms`);
   }
   
   function updateItemsPerPage(itemsPerPage) {
+    const startTime = Date.now();
+    dumpLogs(LogLevel.LOG, `updateItemsPerPage() started at ${startTime}`);
     ItemsPerPage = itemsPerPage;
     renderPage();
+    dumpLogs(LogLevel.LOG, `updateItemsPerPage() call completed in ${(Date.now() - startTime)/1000}ms`);
   }
 
   function renderSettingsPage() {
+    const startTime = Date.now();
+    dumpLogs(LogLevel.LOG, `renderSettingsPage() started at ${startTime}`);
     document.getElementById('back-button').style.display = 'block';
     document.getElementById('home-buttons').style.display = 'none';
     document.getElementById('home-tab-buttons').style.display = 'none';
@@ -124,9 +150,12 @@ function updateTheme(theme) {
 
     document.getElementById('theme-select').value = CurrentTheme;
     document.getElementById('items-per-page-input').value = ItemsPerPage;
+    dumpLogs(LogLevel.LOG, `renderSettingsPage() call completed in ${(Date.now() - startTime)/1000}ms`);
   }
 
   function saveSettings() {
+    const startTime = Date.now();
+    dumpLogs(LogLevel.LOG, `saveSettings() started at ${startTime}`);
     const themeSelect = document.getElementById('theme-select');
         const itemsPerPageInput = document.getElementById('items-per-page-input');
         const theme = themeSelect.value;
@@ -144,9 +173,14 @@ function updateTheme(theme) {
         const settingsModal = document.getElementById('settings-modal');
         settingsModal.style.display = 'none';
         localStorage.setItem('itemsPerPage', itemsPerPage);
+        dumpLogs(LogLevel.LOG, `saveSettings() call completed in ${(Date.now() - startTime)/1000}ms`);
   }
 
 function renderPage() {
+    const startTime = Date.now();
+    dumpLogs(LogLevel.LOG, `renderPage() started at ${startTime}`);
+
+    try {
     SelectedItems.clear();
     updateDeleteAllButton();
 
@@ -157,16 +191,7 @@ function renderPage() {
         document.getElementById('home-tab-buttons').style.display = 'none';
         document.getElementById('searchBar').style.display = 'block';
     }
-
-    const actionStrings = {
-        [CurrentViewEnum.BOOKMARKS]: actionStrAllBookmark,
-        [CurrentViewEnum.DUPLICATE_BOOKMARKS]: actionStrDuplicateBookmark,
-        [CurrentViewEnum.EMPTY_FOLDERS]: actionStrEmptyFolder,
-      };
-      
-      const actionString = actionStrings[CurrentView];
-
-    if(CurrentView == CurrentViewEnum.HOME){
+    else if(CurrentView == CurrentViewEnum.HOME){
         CurrentPage = 1;
         TotalPages = 1;
         renderHomePage();
@@ -177,9 +202,18 @@ function renderPage() {
     }
 
     const resultDiv = document.getElementById('result');
+    const actionStrings = {
+        [CurrentViewEnum.BOOKMARKS]: actionStrAllBookmark,
+        [CurrentViewEnum.DUPLICATE_BOOKMARKS]: actionStrDuplicateBookmark,
+        [CurrentViewEnum.EMPTY_FOLDERS]: actionStrEmptyFolder,
+      };
+      
+    const actionString = actionStrings[CurrentView];
 
     loadItems(actionString).then(() => {
         const filteredItems = applySearchFilter(ItemsList); // Apply the filter to get filtered results
+        
+        searchInputListenerClose();
         searchInputListener();
 
         FilteredItems = filteredItems; // Update FilteredItems array
@@ -270,7 +304,7 @@ function renderPage() {
                     const buttonElement = event.target.closest('.delete-btn');
                     const bookmarkId = buttonElement.dataset.id;
                     chrome.bookmarks.remove(bookmarkId, () => {
-                        alert(`Selected ${CurrentView} deleted!`);
+                        showAlert( LogLevel.INFO, `Selected ${CurrentView} deleted!`);
                         renderPage();
                     });
                 });
@@ -281,25 +315,56 @@ function renderPage() {
             });
         }
     });
+} finally {
+    dumpLogs(LogLevel.LOG, `renderPage() call completed in ${(Date.now() - startTime)/1000}ms`);
+}
+}
+
+const searchInputListenerClose = () => {
+    const startTime = Date.now();
+    dumpLogs(LogLevel.LOG, `searchInputListenerClose() started at ${startTime}`);
+
+    const searchInput = document.getElementById('searchBar');
+    if(debouncedSearch != null){
+        searchInput.removeEventListener('input', debouncedSearch);
+        searchInputListenerAdded = false;
+    }
+
+    dumpLogs(LogLevel.LOG, `searchInputListenerClose() call completed in ${(Date.now() - startTime)/1000}ms`);
 }
 
 const searchInputListener = () => {
-    const performSearch = (query) => {
-      filterDuplicatesBySearchTerm(query);
-    };
-    const debouncedSearch = debounce((event) => performSearch(event.target.value), 300);
+    const startTime = Date.now();
+    dumpLogs(LogLevel.LOG, `searchInputListener() started at ${startTime}`);
+    
     const searchInput = document.getElementById('searchBar');
-    searchInput.addEventListener('input', debouncedSearch);
+    if (!searchInputListenerAdded) { // Check if the event listener has already been added
+        searchInputListenerAdded = true;
+        debouncedSearch = debounce((event) => performSearch(event.target.value), 300);
+        searchInput.addEventListener('input', debouncedSearch);
+    }
+    dumpLogs(LogLevel.LOG, `searchInputListener() call completed in ${(Date.now() - startTime)/1000}ms`);
+  };
+
+  const performSearch = (query) => {
+      const startTimePerformSearch = Date.now();
+      dumpLogs(LogLevel.LOG, `performSearch() started at ${startTimePerformSearch}`);
+      filterBySearchTerm(query);
+      searchInputListenerAdded = false;
+      dumpLogs(LogLevel.LOG, `performSearch() call completed in ${(Date.now() - startTimePerformSearch)/1000}ms`);
   };
 
 function loadItems(actionString) {
+    const startTime = Date.now();
+    dumpLogs(LogLevel.LOG, `loadItems() started at ${startTime}`);
+
     return new Promise((resolve, reject) => {
         try {
             window.scrollTo({ top: 0, behavior: 'smooth' });
             chrome.runtime.sendMessage({ action: actionString }, (response) => {
                 if (chrome.runtime.lastError) {
-                    console.error("Error sending message:", chrome.runtime.lastError.message);
-                    displayError("Error finding duplicates: " + chrome.runtime.lastError.message);
+                    dumpLogs(LogLevel.ERROR, `Error sending message: ${chrome.runtime.lastError.message}`);
+                    displayError(`Error finding duplicates: ${chrome.runtime.lastError.message}`);
                     return;
                 }
                 if (response && response.error) {
@@ -310,18 +375,26 @@ function loadItems(actionString) {
                 displayCounts(ItemsList, CurrentView);
                 TotalPages = Math.ceil(ItemsList.length / ItemsPerPage);
                 FilteredItems = ItemsList; // Initialize filtered duplicates
+                // dumpLogs(LogLevel.LOG, `loadItems() received response: ${JSON.stringify(response)}`);
                 resolve();
             });
         } catch (error) {
-            console.error("Unexpected error:", error);
+            dumpLogs(LogLevel.ERROR, `Unexpected error: ${error}`);
             displayError("Unexpected error occurred.");
             reject(error);
         }
+    }).finally(() => {
+        dumpLogs(LogLevel.LOG, `loadItems() call completed in ${(Date.now() - startTime)/1000}ms`);
     });
 }
 
-function filterDuplicatesBySearchTerm(searchTerm) {
-    const searchTermLower = searchTerm.toLowerCase();
+function filterBySearchTerm(searchTerm) {
+    const startTime = Date.now();
+    dumpLogs(LogLevel.LOG, `filterBySearchTerm() started at ${startTime}`);
+    dumpLogs(LogLevel.ERROR, 'searchTerm:', searchTerm);
+    const searchTermLower = searchTerm.replace(/"/g, '').toLowerCase();
+    dumpLogs(LogLevel.ERROR, 'searchTermLower:', searchTermLower);
+
     FilteredItems = ItemsList.filter(
         ({ title, url, folderPath }) =>
             (title && title.toLowerCase().includes(searchTermLower)) ||
@@ -331,16 +404,21 @@ function filterDuplicatesBySearchTerm(searchTerm) {
     TotalPages = Math.ceil(FilteredItems.length / ItemsPerPage);
     CurrentPage = 1; // Reset CurrentPage to 1
     renderPage();
-    updateDeleteAllButton();
+    dumpLogs(LogLevel.LOG, `filterBySearchTerm() call completed in ${(Date.now() - startTime)/1000}ms`);
 }
 
 function updateDeleteAllButton() {
+    const startTime = Date.now();
+    dumpLogs(LogLevel.LOG, `updateDeleteAllButton() started at ${startTime}`);
     const deleteAllButton = document.getElementById('deleteAll');
     deleteAllButton.style.display = SelectedItems.size <= 1 ? 'none' : 'block';
+    dumpLogs(LogLevel.LOG, `updateDeleteAllButton() call completed in ${(Date.now() - startTime)/1000}ms`);
 }
 
 let previousSelectedBookmarks = new Set();
 function deleteSelectedBookmarks() {
+    const startTime = Date.now();
+    dumpLogs(LogLevel.LOG, `deleteSelectedBookmarks() started at ${startTime}`);
     if (SelectedItems.size === previousSelectedBookmarks.size && [...SelectedItems].every((value, index) => value === [...previousSelectedBookmarks][index])) {
         return;
       }
@@ -357,7 +435,7 @@ function deleteSelectedBookmarks() {
                     removedCount++;
                     if (removedCount === bookmarkIds.length) {
                         SelectedItems.clear();
-                        alert(`Selected ${CurrentView} deleted!`);
+                        showAlert(LogLevel.INFO, `Selected ${CurrentView} deleted!`);
                         renderPage();
                     }
                 });
@@ -367,16 +445,19 @@ function deleteSelectedBookmarks() {
                     removedCount++;
                     if (removedCount === bookmarkIds.length) {
                         SelectedItems.clear();
-                        alert(`Selected ${CurrentView} deleted!`);
+                        showAlert(LogLevel.INFO, `Selected ${CurrentView} deleted!`);
                         renderPage();
                     }
                 });
             }
         });
     });
+    dumpLogs(LogLevel.LOG, `deleteSelectedBookmarks() call completed in ${(Date.now() - startTime)/1000}ms`);
 }
 
 function updatePagination() {
+    const startTime = Date.now();
+    dumpLogs(LogLevel.LOG, `updatePagination() started at ${startTime}`);
     const paginationControls = document.getElementById('pagination-controls');
     paginationControls.innerHTML = '';
   
@@ -454,4 +535,6 @@ function updatePagination() {
         paginationControls.appendChild(nextPageItem);
       }
     }
+
+    dumpLogs(LogLevel.LOG, `updatePagination() call completed in ${(Date.now() - startTime)/1000}ms`);
   }

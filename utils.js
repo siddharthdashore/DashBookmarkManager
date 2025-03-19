@@ -1,9 +1,19 @@
+let enableDebugLogs = false;
+
 const CurrentViewEnum = {
     HOME: "Home",
     BOOKMARKS: "Bookmarks",
     DUPLICATE_BOOKMARKS: "Duplicate Bookmarks",
     EMPTY_FOLDERS: "Empty Folders",
     SETTINGS: "Settings"
+  }
+
+  const LogLevel = {
+    LOG: "log",
+    INFO: "info",
+    WARNING: "warning",
+    ERROR: "error",
+    DEBUG: "debug"
   }
 
 function addGlobalEventListeners() {
@@ -78,4 +88,29 @@ function applySearchFilter(items) {
     );
 }
 
-export { addGlobalEventListeners, renderHomePage, showLoading, hideLoading, displayError, debounce, displayCounts, applySearchFilter, CurrentViewEnum};
+function dumpLogs(logLevel, message) {
+    switch (logLevel) {
+        case LogLevel.INFO:
+            console.info(message);
+            break;
+        case LogLevel.WARNING:
+            console.warn(message);
+            break;
+        case LogLevel.ERROR:
+            console.error(message);
+            break;
+        case LogLevel.DEBUG:
+            if (enableDebugLogs) {console.debug(message)};
+            break;
+        case LogLevel.LOG:
+            if (enableDebugLogs) {console.log(message)};
+            break;
+    }
+}
+
+function showAlert(logLevel, message) {
+    dumpLogs(logLevel, message);
+    alert(message);
+}
+
+export { addGlobalEventListeners, renderHomePage, showLoading, hideLoading, displayError, debounce, displayCounts, applySearchFilter, dumpLogs, showAlert, CurrentViewEnum, LogLevel};

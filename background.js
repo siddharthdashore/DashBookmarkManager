@@ -182,7 +182,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true; // Indicates that the response will be sent asynchronously
   } else if (request.action === "pendingTabsCleanup") {
     chrome.tabs.query({}, async (tabs) => {
-        chrome.bookmarks.search({ title: 'Pending Tabs' }, async (results) => {
+        let pendingTabUrl = '~Pending Tabs~';
+        chrome.bookmarks.search({ title: pendingTabUrl }, async (results) => {
           let pendingTabsFolder;
           if (results.length > 0) {
             pendingTabsFolder = results[0];
@@ -190,7 +191,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             // Create a new Pending Tabs folder if it's not found
             pendingTabsFolder = await new Promise((resolve) => {
               chrome.bookmarks.create({
-                title: 'Pending Tabs'
+                title: pendingTabUrl,
+                parentId: '1'
               }, (result) => {
                 resolve(result);
               });
@@ -224,7 +226,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
               path.unshift(parentNodes[0].title);
               node = parentNodes[0];
             }
-            return `Pending Tabs -> ${path.join(" -> ")}${node.title}`;
+            return `${path.join(" -> ")}${node.title}`;
           };
       
           const timestampFolderPath = await getFolderPath(timestampFolder);
