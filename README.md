@@ -66,6 +66,7 @@ Non-trader
 - 1280x800 or 640x400
 - JPEG or 24-bit PNG (no alpha)
 - At least one is required
+- Edit Screenshots [Reference](https://www.photopea.com)
 
 ### Chrome Screenshot Home:
 ![Chrome Screenshot Home Light](./Screenshots/Chrome/Chrome_Screenshot_Home_Light.png)
